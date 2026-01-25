@@ -1,27 +1,21 @@
 class_name NPCInfoPanel
-extends Control
-## Wildlife documentary style info panel for NPCs.
-## Built programmatically with editor scale support.
-
-@export var panel_color: Color = Color(0.06, 0.06, 0.08, 0.92)
-@export var border_color: Color = Color(0.25, 0.25, 0.3, 0.9)
-@export var text_color: Color = Color(0.95, 0.95, 0.9)
-@export var subtitle_color: Color = Color(0.7, 0.65, 0.6)
+extends BaseWidget
+## Wildlife documentary style info panel for NPCs - extends BaseWidget.
+## Reads NPC state from NPCDataStore for sync with speech bubble.
 
 var _current_npc: Node3D = null
 var _tween: Tween
 var _last_state: String = ""
-var _editor_scale: float = 1.0
-var _expanded: bool = false  # Start collapsed
+var _data_store: NPCDataStore
 
 # Typewriter effect
 var _narrator_tween: Tween
 var _dialogue_tween: Tween
 var _narrator_full_text: String = ""
 var _dialogue_full_text: String = ""
-const TYPEWRITER_SPEED: float = 0.02  # Seconds per character
+const TYPEWRITER_SPEED: float = 0.02
 
-# UI Elements (built in _ready)
+# UI Elements
 var _container: PanelContainer
 var _portrait_container: PanelContainer
 var _portrait: TextureRect
@@ -31,8 +25,6 @@ var _narrator_label: RichTextLabel
 var _dialogue_label: RichTextLabel
 var _state_label: Label
 var _stats_box: VBoxContainer
-var _expanded_box: VBoxContainer
-var _expand_btn: Button
 
 # Stat bars
 var _alertness_bar: ProgressBar
@@ -42,56 +34,30 @@ var _suspicion_bar: ProgressBar
 
 
 func _ready() -> void:
-	_editor_scale = _get_editor_scale()
-	_build_ui()
+	_expand_keybind = KEY_N
+	_expanded = false  # Start collapsed
+	super._ready()
 	visible = false
 	modulate.a = 0.0
+	
+	# Connect to data store
+	_data_store = NPCDataStore.get_instance()
+	_data_store.state_changed.connect(_on_npc_state_changed)
 
 
 func _input(event: InputEvent) -> void:
 	if not visible:
 		return
-	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_N:
-			_toggle_expanded()
-			get_viewport().set_input_as_handled()
-
-
-func _get_editor_scale() -> float:
-	if Engine.is_editor_hint():
-		return EditorInterface.get_editor_scale()
-	return 2.0
-
-
-func _s(val: int) -> int:
-	return int(val * _editor_scale)
-
-
-func _toggle_expanded() -> void:
-	_expanded = not _expanded
-	_expanded_box.visible = _expanded
-	_expand_btn.text = "▲" if _expanded else "▼"
-	_expand_btn.release_focus()
+	super._input(event)
 
 
 func _build_ui() -> void:
-	var font = load("res://assets/fonts/JetBrainsMono.ttf")
-	
 	# Main container
 	_container = PanelContainer.new()
 	_container.custom_minimum_size = Vector2(_s(300), 0)
+	_container.add_theme_stylebox_override("panel", _create_panel_style(10, 16))
 	add_child(_container)
 	
-	# Panel style - dark translucent (matches TOD widget)
-	var style = StyleBoxFlat.new()
-	style.bg_color = panel_color
-	style.set_border_width_all(2)
-	style.border_color = border_color
-	style.set_corner_radius_all(_s(10))
-	style.set_content_margin_all(_s(16))
-	_container.add_theme_stylebox_override("panel", style)
-	
-	# Main VBox
 	var main_vbox = VBoxContainer.new()
 	main_vbox.add_theme_constant_override("separation", _s(12))
 	_container.add_child(main_vbox)
@@ -101,24 +67,22 @@ func _build_ui() -> void:
 	top_row.add_theme_constant_override("separation", _s(16))
 	main_vbox.add_child(top_row)
 	
-	# Portrait with rounded corners (wrap in clipping container)
-	var portrait_container = PanelContainer.new()
-	portrait_container.custom_minimum_size = Vector2(_s(70), _s(70))
-	portrait_container.clip_children = CanvasItem.CLIP_CHILDREN_AND_DRAW
+	# Portrait with rounded corners
+	_portrait_container = PanelContainer.new()
+	_portrait_container.custom_minimum_size = Vector2(_s(70), _s(70))
+	_portrait_container.clip_children = CanvasItem.CLIP_CHILDREN_AND_DRAW
 	var portrait_style = StyleBoxFlat.new()
-	portrait_style.bg_color = Color(1, 1, 1, 1)  # White opaque - image covers it, defines clip shape
+	portrait_style.bg_color = Color(1, 1, 1, 1)
 	portrait_style.set_corner_radius_all(_s(10))
-	portrait_container.add_theme_stylebox_override("panel", portrait_style)
-	top_row.add_child(portrait_container)
+	_portrait_container.add_theme_stylebox_override("panel", portrait_style)
+	_portrait_container.visible = false
+	top_row.add_child(_portrait_container)
 	
 	_portrait = TextureRect.new()
 	_portrait.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	portrait_container.add_child(_portrait)
-	
-	_portrait_container = portrait_container
-	_portrait_container.visible = false  # Hidden until we have a portrait
+	_portrait_container.add_child(_portrait)
 	
 	# Name/Title column
 	var header_vbox = VBoxContainer.new()
@@ -131,67 +95,42 @@ func _build_ui() -> void:
 	name_row.add_theme_constant_override("separation", _s(8))
 	header_vbox.add_child(name_row)
 	
-	_name_label = Label.new()
-	_name_label.add_theme_font_override("font", font)
-	_name_label.add_theme_font_size_override("font_size", _s(22))
-	_name_label.add_theme_color_override("font_color", text_color)
-	_name_label.text = "Bernard"
+	_name_label = _create_label("Bernard", 22)
 	_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_row.add_child(_name_label)
+	name_row.add_child(_create_expand_button())
 	
-	# Expand/collapse button (flat style to match clock widget)
-	_expand_btn = Button.new()
-	_expand_btn.text = "▼"  # Start collapsed
-	_expand_btn.flat = true
-	_expand_btn.add_theme_font_override("font", font)
-	_expand_btn.add_theme_font_size_override("font_size", _s(14))
-	_expand_btn.add_theme_color_override("font_color", text_color)
-	_expand_btn.custom_minimum_size = Vector2(_s(32), _s(28))
-	_expand_btn.pressed.connect(_toggle_expanded)
-	name_row.add_child(_expand_btn)
-	
-	# Title + State row (compact)
+	# Title + State row
 	var title_row = HBoxContainer.new()
 	title_row.add_theme_constant_override("separation", _s(8))
 	header_vbox.add_child(title_row)
 	
-	_title_label = Label.new()
-	_title_label.add_theme_font_override("font", font)
-	_title_label.add_theme_font_size_override("font_size", _s(14))
-	_title_label.add_theme_color_override("font_color", subtitle_color)
-	_title_label.text = "The Grumpy Shopkeeper"
+	_title_label = _create_label("The Grumpy Shopkeeper", 14, SUBTITLE_COLOR)
 	_title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	title_row.add_child(_title_label)
 	
-	# State label (always visible, in header)
-	_state_label = Label.new()
-	_state_label.add_theme_font_override("font", font)
-	_state_label.add_theme_font_size_override("font_size", _s(14))
-	_state_label.add_theme_color_override("font_color", text_color)
-	_state_label.text = "😌 Idle"
-	_state_label.custom_minimum_size = Vector2(_s(90), 0)  # Fixed width to prevent layout shift
+	_state_label = _create_label("😌 Idle", 14)
+	_state_label.custom_minimum_size = Vector2(_s(90), 0)
 	_state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_state_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_state_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	title_row.add_child(_state_label)
 	
 	# === EXPANDED CONTENT ===
 	_expanded_box = VBoxContainer.new()
 	_expanded_box.add_theme_constant_override("separation", _s(12))
-	_expanded_box.visible = false  # Start collapsed
+	_expanded_box.visible = false
 	main_vbox.add_child(_expanded_box)
 	
-	# Separator
 	_expanded_box.add_child(HSeparator.new())
 	
-	# === NARRATOR TEXT === (with emoji, fixed height)
+	# Narrator text
 	var narrator_row = HBoxContainer.new()
 	narrator_row.add_theme_constant_override("separation", _s(4))
-	narrator_row.alignment = BoxContainer.ALIGNMENT_BEGIN
 	_expanded_box.add_child(narrator_row)
 	
-	var narrator_emoji = Label.new()
-	narrator_emoji.text = "🤔"
-	narrator_emoji.add_theme_font_size_override("font_size", _s(16))
+	var narrator_emoji = _create_label("🤔", 16)
 	narrator_emoji.custom_minimum_size = Vector2(_s(22), 0)
 	narrator_emoji.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	narrator_row.add_child(narrator_emoji)
@@ -203,26 +142,22 @@ func _build_ui() -> void:
 	_narrator_label.custom_minimum_size = Vector2(0, _s(42))
 	_narrator_label.clip_contents = true
 	_narrator_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_narrator_label.add_theme_font_override("normal_font", font)
-	_narrator_label.add_theme_font_override("italics_font", font)
+	_narrator_label.add_theme_font_override("normal_font", _font)
+	_narrator_label.add_theme_font_override("italics_font", _font)
 	_narrator_label.add_theme_font_size_override("normal_font_size", _s(14))
 	_narrator_label.add_theme_font_size_override("italics_font_size", _s(14))
-	_narrator_label.add_theme_color_override("default_color", subtitle_color)
+	_narrator_label.add_theme_color_override("default_color", SUBTITLE_COLOR)
 	_narrator_label.text = "[i]A quiet moment...[/i]"
 	narrator_row.add_child(_narrator_label)
 	
-	# Separator
 	_expanded_box.add_child(HSeparator.new())
 	
-	# === DIALOGUE TEXT === (with emoji, fixed height)
+	# Dialogue text
 	var dialogue_row = HBoxContainer.new()
 	dialogue_row.add_theme_constant_override("separation", _s(4))
-	dialogue_row.alignment = BoxContainer.ALIGNMENT_BEGIN
 	_expanded_box.add_child(dialogue_row)
 	
-	var dialogue_emoji = Label.new()
-	dialogue_emoji.text = "💬"
-	dialogue_emoji.add_theme_font_size_override("font_size", _s(16))
+	var dialogue_emoji = _create_label("💬", 16)
 	dialogue_emoji.custom_minimum_size = Vector2(_s(22), 0)
 	dialogue_emoji.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	dialogue_row.add_child(dialogue_emoji)
@@ -234,16 +169,15 @@ func _build_ui() -> void:
 	_dialogue_label.custom_minimum_size = Vector2(0, _s(42))
 	_dialogue_label.clip_contents = true
 	_dialogue_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_dialogue_label.add_theme_font_override("normal_font", font)
+	_dialogue_label.add_theme_font_override("normal_font", _font)
 	_dialogue_label.add_theme_font_size_override("normal_font_size", _s(16))
-	_dialogue_label.add_theme_color_override("default_color", text_color)
+	_dialogue_label.add_theme_color_override("default_color", TEXT_COLOR)
 	_dialogue_label.text = "Another quiet day..."
 	dialogue_row.add_child(_dialogue_label)
 	
-	# Separator after dialogue
 	_expanded_box.add_child(HSeparator.new())
 	
-	# === STAT BARS === (in expanded box)
+	# Stat bars
 	_stats_box = VBoxContainer.new()
 	_stats_box.add_theme_constant_override("separation", _s(8))
 	_expanded_box.add_child(_stats_box)
@@ -255,17 +189,11 @@ func _build_ui() -> void:
 
 
 func _create_stat_bar(label_text: String, color: Color) -> ProgressBar:
-	var font = load("res://assets/fonts/JetBrainsMono.ttf")
-	
 	var row = HBoxContainer.new()
 	row.add_theme_constant_override("separation", _s(10))
 	_stats_box.add_child(row)
 	
-	var label = Label.new()
-	label.add_theme_font_override("font", font)
-	label.add_theme_font_size_override("font_size", _s(13))
-	label.add_theme_color_override("font_color", subtitle_color)
-	label.text = label_text
+	var label = _create_label(label_text, 13, SUBTITLE_COLOR)
 	label.custom_minimum_size.x = _s(100)
 	row.add_child(label)
 	
@@ -295,6 +223,19 @@ func _process(_delta: float) -> void:
 		_update_stats()
 
 
+func _on_npc_state_changed(npc_id: String, data: Dictionary) -> void:
+	# Update if this is the currently displayed NPC
+	if _current_npc and _current_npc.get("npc_id") == npc_id:
+		var state = data.get("state", "idle")
+		var dialogue = data.get("dialogue", "")
+		if state != _last_state:
+			_last_state = state
+			_update_state_label(state)
+			_update_narrator_text(_current_npc.get("personality"), state)
+		if not dialogue.is_empty():
+			_show_dialogue_text(dialogue)
+
+
 func show_npc(npc: Node3D) -> void:
 	if _current_npc == npc and visible:
 		return
@@ -321,14 +262,21 @@ func show_npc(npc: Node3D) -> void:
 		_title_label.text = "Unknown"
 		_portrait_container.visible = false
 	
-	var state = npc.get("current_state")
-	if state == null:
-		state = "idle"
+	# Get initial state from data store (single source of truth)
+	var npc_id_str = npc.get("npc_id") if npc.get("npc_id") else ""
+	var state = "idle"
+	var dialogue = ""
+	if not npc_id_str.is_empty() and _data_store:
+		state = _data_store.get_npc_state(npc_id_str)
+		dialogue = _data_store.get_npc_dialogue(npc_id_str)
 	
 	_last_state = state
 	_update_narrator_text(personality, state)
-	_update_dialogue_text(personality, state)
 	_update_state_label(state)
+	if not dialogue.is_empty():
+		_show_dialogue_text(dialogue)
+	else:
+		_update_dialogue_from_npc(npc, personality, state)
 	
 	visible = true
 	if _tween:
@@ -365,7 +313,6 @@ func _update_narrator_text(personality, state: String) -> void:
 			"frustrated": text = "Defeat weighs heavy."
 			_: text = "Observe closely..."
 	
-	# Typewriter effect
 	_narrator_full_text = text
 	if _narrator_tween:
 		_narrator_tween.kill()
@@ -380,15 +327,23 @@ func _add_narrator_char(index: int) -> void:
 	_narrator_label.text = "[i]%s[/i]" % _narrator_full_text.substr(0, index + 1)
 
 
-func _update_dialogue_text(personality, state: String) -> void:
+func _update_dialogue_from_npc(npc: Node3D, personality, state: String) -> void:
 	var text = ""
 	
-	# Use NPC's stored current_dialogue if available (syncs with speech bubble)
-	if _current_npc and _current_npc.get("current_dialogue"):
-		text = _current_npc.current_dialogue
-	elif personality and personality.has_method("get_dialogue"):
+	# First try data store
+	var npc_id = npc.get("npc_id") if npc.get("npc_id") else ""
+	if not npc_id.is_empty():
+		text = _data_store.get_npc_dialogue(npc_id)
+	
+	# Fallback to NPC's current_dialogue
+	if text.is_empty() and npc.get("current_dialogue"):
+		text = npc.current_dialogue
+	
+	# Fallback to personality
+	if text.is_empty() and personality and personality.has_method("get_dialogue"):
 		text = personality.get_dialogue(state)
 	
+	# Final fallback
 	if text.is_empty() or text == "...":
 		match state:
 			"idle": text = "...Why are you watching me?"
@@ -398,10 +353,12 @@ func _update_dialogue_text(personality, state: String) -> void:
 			"frustrated": text = "This isn't over..."
 			_: text = "Stop staring."
 	
-	# Strip quotes if present
+	_show_dialogue_text(text)
+
+
+func _show_dialogue_text(text: String) -> void:
 	var clean_text = text.trim_prefix("\"").trim_suffix("\"")
 	
-	# Typewriter effect
 	_dialogue_full_text = clean_text
 	if _dialogue_tween:
 		_dialogue_tween.kill()
@@ -417,39 +374,8 @@ func _add_dialogue_char(index: int) -> void:
 
 
 func _update_state_label(state: String) -> void:
-	# Same emoji mapping as NPCStateIndicator speech bubble
-	var state_emoji = {
-		"idle": "😌",
-		"calm": "😌",
-		"returning": "😌",
-		"alert": "👀",
-		"suspicious": "🤨",
-		"investigating": "🤨",
-		"searching": "❓",
-		"angry": "😠",
-		"chasing": "😠",
-		"tired": "😮‍💨",
-		"frustrated": "😮‍💨",
-		"gave_up": "😮‍💨",
-		"caught": "😤"
-	}
-	var state_colors = {
-		"idle": Color(0.3, 0.7, 0.3),
-		"calm": Color(0.3, 0.7, 0.3),
-		"returning": Color(0.3, 0.7, 0.3),
-		"alert": Color(0.9, 0.7, 0.0),
-		"suspicious": Color(0.2, 0.5, 0.9),
-		"investigating": Color(0.4, 0.6, 0.9),
-		"searching": Color(0.4, 0.6, 0.9),
-		"angry": Color(0.9, 0.2, 0.2),
-		"chasing": Color(0.9, 0.1, 0.1),
-		"tired": Color(0.5, 0.5, 0.5),
-		"frustrated": Color(0.5, 0.5, 0.5),
-		"gave_up": Color(0.5, 0.5, 0.5),
-		"caught": Color(0.9, 0.8, 0.2)
-	}
-	var emoji = state_emoji.get(state, "💭")
-	var color = state_colors.get(state, text_color)
+	var emoji = NPCUIUtils.get_status_emoji(state)
+	var color = NPCUIUtils.get_status_color(state)
 	_state_label.text = emoji + " " + state.capitalize()
 	_state_label.add_theme_color_override("font_color", color)
 
@@ -462,15 +388,8 @@ func _update_stats() -> void:
 	if not emo:
 		return
 	
+	# Only update emotion bars - state/dialogue comes from data store signal
 	_alertness_bar.value = emo.alertness
 	_annoyance_bar.value = emo.annoyance
 	_exhaustion_bar.value = emo.exhaustion
 	_suspicion_bar.value = emo.suspicion
-	
-	var state = _current_npc.get("current_state")
-	if state and state != _last_state:
-		_last_state = state
-		_update_state_label(state)
-		var personality = _current_npc.get("personality")
-		_update_narrator_text(personality, state)
-		_update_dialogue_text(personality, state)

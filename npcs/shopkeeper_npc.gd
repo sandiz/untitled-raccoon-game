@@ -27,6 +27,12 @@ var current_state: String = "idle"
 ## Current dialogue text (shared between bubble and info panel)
 var current_dialogue: String = "Hmm..."
 
+## NPC ID for data store
+var npc_id: String = ""
+
+## Data store for UI sync
+var _data_store: NPCDataStore
+
 ## Cached reference to player (if any)
 var _player: Node3D = null
 
@@ -85,8 +91,13 @@ func _ready() -> void:
 	# Find player reference
 	_player = get_tree().get_first_node_in_group("player")
 	
+	# Initialize data store and npc_id
+	_data_store = NPCDataStore.get_instance()
+	npc_id = personality.npc_id if personality else str(name)
+	
 	# Create floating state indicator
 	_state_indicator = NPCStateIndicator.new()
+	_state_indicator.npc_id = npc_id  # Set npc_id for data store sync
 	add_child(_state_indicator)
 	
 	# Show initial idle dialogue
@@ -350,9 +361,9 @@ func _update_state_indicator(state: String) -> void:
 	# Store for info panel to use
 	current_dialogue = dialogue
 	
-	# Show on bubble with state for contextual emoji
-	if _state_indicator:
-		_state_indicator.show_dialogue(dialogue, 0.0, state)
+	# Update data store (triggers both speech bubble and info panel)
+	if _data_store:
+		_data_store.update_npc_state(npc_id, state, dialogue)
 
 
 func _update_vision_indicator(state: String) -> void:

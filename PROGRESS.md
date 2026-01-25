@@ -15,7 +15,8 @@
 - Game speed controls (1-4 keys)
 - TOD clock widget (top-left, V to expand, shows speed/ratio in collapsed view)
 - NPC info panel (top-right, N to expand, starts collapsed, typewriter effect)
-- Speech bubble above NPC (status emoji, dark theme, synced dialogue)
+- Speech bubble above NPC (status emoji, dark theme, synced via data store)
+- Shared widget architecture (BaseWidget base class, NPCDataStore for sync)
 
 ## Controls
 
@@ -28,6 +29,7 @@
 | V | Toggle TOD widget expand |
 | N | Toggle NPC info panel expand |
 | 1-4 | Game speed |
+| Scroll/Pinch | Camera zoom (max 1.8x) |
 
 ## What's Working
 
@@ -47,17 +49,25 @@
 | Pause functionality | ✅ Done |
 | Speech bubble (status emoji, dark) | ✅ Done |
 | Button focus release (all widgets) | ✅ Done |
+| Widget sync via NPCDataStore | ✅ Done |
+| BaseWidget shared styling | ✅ Done |
+| Speed options below 1x | ✅ Done |
 
 ## Speech Bubble Features
 
 - Dark translucent style (matches other widgets)
 - Status-based emoji (😌 idle, 👀 alert, 😠 chasing, etc.)
-- Tail flush with bubble body
+- Tail flush with bubble body (no bottom border, renders behind)
 - Pop-in animation (TRANS_BACK bounce)
 - Typewriter text effect
 - Subtle bob animation
-- Synced with NPC info panel dialogue
+- **Synced with NPC info panel** via NPCDataStore (single source of truth)
 - **TODO:** Message priority system (high-prio messages stay on screen)
+
+## Speed Options
+
+Array-based speeds: `[0.1, 0.25, 0.5, 1.0, 2.0, 4.0]`
+Labels: `["⅒x", "¼x", "½x", "1x", "2x", "4x"]`
 
 ## Pending Decisions
 

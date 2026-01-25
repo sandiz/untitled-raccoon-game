@@ -121,3 +121,7 @@ Expanded (N key):
 - [x] State label layout shift (fixed minimum width)
 - [x] Dialogue state mapping ("alert" → "spotted", "searching" → "lost")
 - [x] TOD collapsed view shows speed (1x/2x/⏸) and ratio (10m=24h)
+- [x] Speed controls support sub-1x speeds (0.1x, 0.25x, 0.5x)
+- [x] Speech bubble tail renders behind panel (no transparency artifacts)
+- [x] Widget sync via NPCDataStore (static singleton, no autoload)
+- [x] BaseWidget base class for shared styling

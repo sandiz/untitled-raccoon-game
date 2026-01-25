@@ -1,7 +1,9 @@
 class_name NPCStateIndicator
 extends Node3D
 ## Speech bubble using SubViewport for clean 2D rendering in 3D.
+## Listens to NPCDataStore for state/dialogue updates.
 
+@export var npc_id: String = ""  # Set by shopkeeper to identify which NPC this belongs to
 @export var height_offset: float = 3.3
 @export var bob_amount: float = 0.05
 @export var bob_speed: float = 2.0
@@ -26,11 +28,18 @@ var _scale: float = 5.0
 var _time: float = 0.0
 
 
+var _data_store: NPCDataStore
+
+
 func _ready() -> void:
 	_scale = _get_editor_scale()
 	_setup_viewport()
 	_setup_sprite()
-	_sprite.visible = false  # Start hidden, shopkeeper will call show_dialogue()
+	_sprite.visible = false
+	
+	# Connect to data store for reactive updates
+	_data_store = NPCDataStore.get_instance()
+	_data_store.state_changed.connect(_on_state_changed)
 
 
 func _get_editor_scale() -> float:
@@ -63,7 +72,12 @@ func _setup_viewport() -> void:
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0.06, 0.06, 0.08, 0.95)
 	style.border_color = Color(0.25, 0.25, 0.3, 0.9)
-	style.set_border_width_all(_s(2))
+	# No bottom border - tail connects seamlessly
+	style.border_width_left = _s(2)
+	style.border_width_right = _s(2)
+	style.border_width_top = _s(2)
+	style.border_width_bottom = 0
+	# Round all corners
 	style.set_corner_radius_all(_s(10))
 	# Reduced top/bottom padding, keep left/right
 	style.content_margin_left = _s(6)
@@ -102,25 +116,27 @@ func _setup_viewport() -> void:
 	_label.custom_minimum_size = Vector2(_s(150), 0)  # Min width only, height fits content
 	_hbox.add_child(_label)
 	
-	# Create tail (triangle pointing down)
+	# Create tail (triangle pointing down) - rendered BEHIND panel
 	var tail = Polygon2D.new()
 	tail.color = Color(0.06, 0.06, 0.08, 0.95)
 	tail.polygon = PackedVector2Array([
-		Vector2(-_s(15), 0),
-		Vector2(_s(15), 0),
-		Vector2(0, _s(20))
+		Vector2(-_s(15), 0),  # Start at panel bottom
+		Vector2(_s(15), 0),   # Start at panel bottom  
+		Vector2(0, _s(20))    # Point down
 	])
+	tail.z_index = -1  # Render behind panel
 	container.add_child(tail)
 	
-	# Tail outline
+	# Tail outline (only the V shape, not the top)
 	var tail_outline = Line2D.new()
 	tail_outline.points = PackedVector2Array([
 		Vector2(-_s(15), 0),
 		Vector2(0, _s(20)),
 		Vector2(_s(15), 0)
 	])
-	tail_outline.width = _s(2)  # Match panel border width
+	tail_outline.width = _s(2)
 	tail_outline.default_color = Color(0.25, 0.25, 0.3, 0.9)
+	tail_outline.z_index = -1  # Also behind panel
 	container.add_child(tail_outline)
 	
 	# Store tail refs for positioning
@@ -162,8 +178,8 @@ func show_dialogue(text: String, _duration: float = 3.0, state: String = "idle")
 	if _popin_tween:
 		_popin_tween.kill()
 	
-	# Status-based emoji
-	_emoji_label.text = _get_status_emoji(state)
+	# Status-based emoji (from shared utility)
+	_emoji_label.text = NPCUIUtils.get_status_emoji(state)
 	
 	# Strip quotes if present
 	var display_text = text.trim_prefix("\"").trim_suffix("\"")
@@ -229,9 +245,9 @@ func _resize_to_fit() -> void:
 	var min_size = _panel.get_combined_minimum_size()
 	var tail_height = _s(20)
 	
-	# Position tail flush with bottom of panel (inside border)
+	# Position tail at panel bottom (tail renders behind, no overlap needed)
 	var tail_x = min_size.x / 2
-	var tail_y = min_size.y - _s(2)  # Flush with border
+	var tail_y = min_size.y  # Exactly at panel bottom edge
 	_tail.position = Vector2(tail_x, tail_y)
 	_tail_outline.position = Vector2(tail_x, tail_y)
 	
@@ -243,21 +259,13 @@ func hide_indicator() -> void:
 	_sprite.visible = false
 
 
-func _get_status_emoji(state: String) -> String:
-	match state:
-		"idle", "calm", "returning":
-			return "😌"  # Relaxed/content
-		"alert":
-			return "👀"  # Alert/watching
-		"suspicious", "investigating":
-			return "🤨"  # Suspicious
-		"chasing", "angry":
-			return "😠"  # Angry/chasing
-		"searching":
-			return "❓"  # Searching/confused
-		"tired", "frustrated", "gave_up":
-			return "😮‍💨"  # Exhausted
-		"caught":
-			return "😤"  # Triumphant
-		_:
-			return "💭"  # Default thought
+func _on_state_changed(changed_npc_id: String, data: Dictionary) -> void:
+	# Only respond to our NPC's updates
+	if npc_id.is_empty() or changed_npc_id != npc_id:
+		return
+	
+	var state = data.get("state", "idle")
+	var dialogue = data.get("dialogue", "")
+	
+	if not dialogue.is_empty():
+		show_dialogue(dialogue, 0.0, state)

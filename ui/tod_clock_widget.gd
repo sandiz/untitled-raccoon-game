@@ -1,12 +1,9 @@
-class_name TODClockWidget
-extends Control
-## Time of Day clock widget - Option A style (minimal with period buttons + controls)
-## Designed for top-left positioning with downward expansion.
+extends BaseWidget
+## Time of Day clock widget - extends BaseWidget for shared styling.
 
 signal period_selected(period_index: int)
-signal auto_advance_toggled(enabled: bool)
 
-const PERIOD_ICONS := ["🌅", "☀", "🌆", "🌙"]  # Morning, Afternoon, Evening, Night
+const PERIOD_ICONS := ["🌅", "☀", "🌆", "🌙"]
 const PERIOD_NAMES := ["Morning", "Afternoon", "Evening", "Night"]
 const PERIOD_COLORS := [
 	Color("#FFD700"),  # Morning - Gold
@@ -15,18 +12,19 @@ const PERIOD_COLORS := [
 	Color("#6495ED")   # Night - Blue
 ]
 
+# Speed options
+const SPEED_VALUES := [0.1, 0.25, 0.5, 1.0, 2.0, 4.0]
+const SPEED_LABELS := ["⅒x", "¼x", "½x", "1x", "2x", "4x"]
+
 @export var day_night_cycle_path: NodePath
 
 var _day_night: DayNightCycle = null
-var _expanded: bool = false
-var _auto_advance: bool = true
-var _current_speed: int = 1
+var _speed_index: int = 3  # Default to 1x
 
-# UI elements
+# UI elements specific to this widget
 var _container: PanelContainer
 var _main_vbox: VBoxContainer
 var _collapsed_row: HBoxContainer
-var _expanded_box: VBoxContainer
 var _icon_label: Label
 var _time_label: Label
 var _period_label: Label
@@ -34,22 +32,13 @@ var _progress_bar: ProgressBar
 var _period_buttons: Array[Button] = []
 var _pause_btn: Button
 var _speed_label: Label
-var _collapsed_speed_label: Label  # Speed indicator in collapsed view
-var _expand_btn: Button
-var _editor_scale: float = 1.0
+var _collapsed_speed_label: Label
 
 
 func _ready() -> void:
-	_editor_scale = _get_editor_scale()
-	_setup_ui()
+	_expand_keybind = KEY_V
+	super._ready()
 	call_deferred("_connect_day_night")
-
-
-func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_V:
-			_toggle_expanded()
-			get_viewport().set_input_as_handled()
 
 
 func _connect_day_night() -> void:
@@ -81,22 +70,12 @@ func _find_day_night_recursive(node: Node) -> DayNightCycle:
 	return null
 
 
-func _setup_ui() -> void:
-	var font = load("res://assets/fonts/JetBrainsMono.ttf")
-	
-	# Main container - BIGGER base size
+func _build_ui() -> void:
+	# Main container
 	_container = PanelContainer.new()
 	_container.custom_minimum_size = Vector2(_s(220), 0)
+	_container.add_theme_stylebox_override("panel", _create_panel_style())
 	add_child(_container)
-	
-	# Panel style - dark translucent
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.06, 0.06, 0.08, 0.92)
-	style.set_border_width_all(2)
-	style.border_color = Color(0.25, 0.25, 0.3, 0.9)
-	style.set_corner_radius_all(_s(10))
-	style.set_content_margin_all(_s(14))
-	_container.add_theme_stylebox_override("panel", style)
 	
 	# Main VBox
 	_main_vbox = VBoxContainer.new()
@@ -108,13 +87,10 @@ func _setup_ui() -> void:
 	_collapsed_row.add_theme_constant_override("separation", _s(12))
 	_main_vbox.add_child(_collapsed_row)
 	
-	# Icon (sun/moon emoji) - FIXED WIDTH to prevent layout shift
-	_icon_label = Label.new()
-	_icon_label.add_theme_font_override("font", font)
-	_icon_label.add_theme_font_size_override("font_size", _s(28))
+	# Icon (sun/moon emoji)
+	_icon_label = _create_label("☀", 28)
 	_icon_label.custom_minimum_size = Vector2(_s(36), 0)
 	_icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_icon_label.text = "☀"
 	_collapsed_row.add_child(_icon_label)
 	
 	# Time + Period info
@@ -128,43 +104,28 @@ func _setup_ui() -> void:
 	time_row.add_theme_constant_override("separation", _s(8))
 	info_vbox.add_child(time_row)
 	
-	# Time label (HH:MM) - BIG
-	_time_label = Label.new()
-	_time_label.add_theme_font_override("font", font)
-	_time_label.add_theme_font_size_override("font_size", _s(24))
-	_time_label.text = "08:00"
+	# Time label
+	_time_label = _create_label("08:00", 24)
 	time_row.add_child(_time_label)
 	
-	# Speed + Ratio stacked vertically (pushed right)
+	# Speed + Ratio stacked
 	var speed_ratio_vbox = VBoxContainer.new()
 	speed_ratio_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	speed_ratio_vbox.add_theme_constant_override("separation", 0)
 	time_row.add_child(speed_ratio_vbox)
 	
-	# Speed indicator on top (1x, 2x, or ⏸)
-	_collapsed_speed_label = Label.new()
-	_collapsed_speed_label.add_theme_font_override("font", font)
-	_collapsed_speed_label.add_theme_font_size_override("font_size", _s(12))
-	_collapsed_speed_label.add_theme_color_override("font_color", Color(0.55, 0.55, 0.6))
-	_collapsed_speed_label.text = "1x"
+	# Speed indicator
+	_collapsed_speed_label = _create_label("1x", 12, MUTED_COLOR)
 	_collapsed_speed_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	speed_ratio_vbox.add_child(_collapsed_speed_label)
 	
-	# Time ratio below (10m=24h)
-	var ratio_label = Label.new()
-	ratio_label.add_theme_font_override("font", font)
-	ratio_label.add_theme_font_size_override("font_size", _s(10))
-	ratio_label.add_theme_color_override("font_color", Color(0.4, 0.4, 0.45))
-	ratio_label.text = "10m=24h"
+	# Time ratio
+	var ratio_label = _create_label("10m=24h", 10, Color(0.4, 0.4, 0.45))
 	ratio_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	speed_ratio_vbox.add_child(ratio_label)
 	
 	# Period name
-	_period_label = Label.new()
-	_period_label.add_theme_font_override("font", font)
-	_period_label.add_theme_font_size_override("font_size", _s(14))
-	_period_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
-	_period_label.text = "Morning"
+	_period_label = _create_label("Morning", 14, SUBTITLE_COLOR)
 	info_vbox.add_child(_period_label)
 	
 	# Progress bar
@@ -172,16 +133,8 @@ func _setup_ui() -> void:
 	_progress_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info_vbox.add_child(_progress_bar)
 	
-	# Expand button (flat style)
-	_expand_btn = Button.new()
-	_expand_btn.text = "▼"
-	_expand_btn.flat = true
-	_expand_btn.add_theme_font_override("font", font)
-	_expand_btn.add_theme_font_size_override("font_size", _s(14))
-	_expand_btn.add_theme_color_override("font_color", Color(0.95, 0.95, 0.9))
-	_expand_btn.custom_minimum_size = Vector2(_s(32), _s(32))
-	_expand_btn.pressed.connect(_toggle_expanded)
-	_collapsed_row.add_child(_expand_btn)
+	# Expand button
+	_collapsed_row.add_child(_create_expand_button())
 	
 	# === EXPANDED BOX ===
 	_expanded_box = VBoxContainer.new()
@@ -189,77 +142,50 @@ func _setup_ui() -> void:
 	_expanded_box.visible = false
 	_main_vbox.add_child(_expanded_box)
 	
-	# Separator
-	var sep = HSeparator.new()
-	_expanded_box.add_child(sep)
+	_expanded_box.add_child(HSeparator.new())
 	
-	# Period buttons row - BIGGER
-	var period_label = Label.new()
-	period_label.add_theme_font_override("font", font)
-	period_label.add_theme_font_size_override("font_size", _s(12))
-	period_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
-	period_label.text = "Jump to period:"
-	_expanded_box.add_child(period_label)
+	# Period buttons
+	_expanded_box.add_child(_create_label("Jump to period:", 12, Color(0.6, 0.6, 0.65)))
 	
 	var btn_row = HBoxContainer.new()
 	btn_row.add_theme_constant_override("separation", _s(8))
 	_expanded_box.add_child(btn_row)
 	
 	for i in range(4):
-		var btn = Button.new()
-		btn.text = PERIOD_ICONS[i]
+		var btn = _create_button(PERIOD_ICONS[i], _on_period_button_pressed.bind(i), 20)
 		btn.tooltip_text = PERIOD_NAMES[i]
-		btn.add_theme_font_override("font", font)
-		btn.add_theme_font_size_override("font_size", _s(20))
 		btn.custom_minimum_size = Vector2(_s(48), _s(40))
-		btn.pressed.connect(_on_period_button_pressed.bind(i))
 		btn_row.add_child(btn)
 		_period_buttons.append(btn)
 	
-	# Controls row (Pause + Speed)
-	var sep2 = HSeparator.new()
-	_expanded_box.add_child(sep2)
+	_expanded_box.add_child(HSeparator.new())
 	
+	# Controls row
 	var controls_row = HBoxContainer.new()
 	controls_row.add_theme_constant_override("separation", _s(12))
 	_expanded_box.add_child(controls_row)
 	
 	# Pause button
-	_pause_btn = Button.new()
-	_pause_btn.text = "⏸ Pause"
-	_pause_btn.add_theme_font_override("font", font)
-	_pause_btn.add_theme_font_size_override("font_size", _s(14))
+	_pause_btn = _create_button("⏸ Pause", _on_pause_pressed, 14)
 	_pause_btn.custom_minimum_size = Vector2(_s(90), _s(36))
-	_pause_btn.pressed.connect(_on_pause_pressed)
 	controls_row.add_child(_pause_btn)
 	
-	# Speed label + buttons
+	# Speed controls
 	var speed_box = HBoxContainer.new()
 	speed_box.add_theme_constant_override("separation", _s(6))
 	controls_row.add_child(speed_box)
 	
-	_speed_label = Label.new()
-	_speed_label.add_theme_font_override("font", font)
-	_speed_label.add_theme_font_size_override("font_size", _s(14))
-	_speed_label.text = "1x"
+	_speed_label = _create_label("1x", 14)
 	_speed_label.custom_minimum_size = Vector2(_s(36), 0)
 	_speed_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	speed_box.add_child(_speed_label)
 	
-	var speed_up = Button.new()
-	speed_up.text = "▲"
-	speed_up.add_theme_font_override("font", font)
-	speed_up.add_theme_font_size_override("font_size", _s(12))
+	var speed_up = _create_button("▲", _on_speed_up, 12)
 	speed_up.custom_minimum_size = Vector2(_s(32), _s(36))
-	speed_up.pressed.connect(_on_speed_up)
 	speed_box.add_child(speed_up)
 	
-	var speed_down = Button.new()
-	speed_down.text = "▼"
-	speed_down.add_theme_font_override("font", font)
-	speed_down.add_theme_font_size_override("font_size", _s(12))
+	var speed_down = _create_button("▼", _on_speed_down, 12)
 	speed_down.custom_minimum_size = Vector2(_s(32), _s(36))
-	speed_down.pressed.connect(_on_speed_down)
 	speed_box.add_child(speed_down)
 	
 	# Make collapsed row clickable
@@ -287,13 +213,6 @@ func _create_progress_bar(width: int, height: int) -> ProgressBar:
 	return bar
 
 
-func _toggle_expanded() -> void:
-	_expanded = not _expanded
-	_expanded_box.visible = _expanded
-	_expand_btn.text = "▲" if _expanded else "▼"
-	_expand_btn.release_focus()
-
-
 func _on_collapsed_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		_toggle_expanded()
@@ -303,7 +222,6 @@ func _on_period_button_pressed(index: int) -> void:
 	if _day_night:
 		_day_night.set_period(index as DayNightCycle.TimePeriod, false)
 	period_selected.emit(index)
-	get_viewport().gui_release_focus()
 
 
 func _on_pause_pressed() -> void:
@@ -311,42 +229,28 @@ func _on_pause_pressed() -> void:
 		if _day_night.is_paused():
 			_day_night.resume()
 			_pause_btn.text = "⏸ Pause"
-			_collapsed_speed_label.text = "%dx" % _current_speed
+			_collapsed_speed_label.text = SPEED_LABELS[_speed_index]
 		else:
 			_day_night.pause()
 			_pause_btn.text = "▶ Play"
 			_collapsed_speed_label.text = "⏸"
-	_pause_btn.release_focus()
 
 
 func _on_speed_up() -> void:
-	_current_speed = mini(_current_speed + 1, 4)
+	_speed_index = mini(_speed_index + 1, SPEED_VALUES.size() - 1)
 	_apply_speed()
-	get_viewport().gui_release_focus()
 
 
 func _on_speed_down() -> void:
-	_current_speed = maxi(_current_speed - 1, 1)
+	_speed_index = maxi(_speed_index - 1, 0)
 	_apply_speed()
-	get_viewport().gui_release_focus()
 
 
 func _apply_speed() -> void:
-	_speed_label.text = "%dx" % _current_speed
-	_collapsed_speed_label.text = "%dx" % _current_speed
-	Engine.time_scale = float(_current_speed)
-
-
-func _on_auto_toggled(enabled: bool) -> void:
-	_auto_advance = enabled
-	if _day_night:
-		if enabled:
-			_day_night.resume()
-			_collapsed_speed_label.text = "%dx" % _current_speed
-		else:
-			_day_night.pause()
-			_collapsed_speed_label.text = "⏸"
-	auto_advance_toggled.emit(enabled)
+	var label = SPEED_LABELS[_speed_index]
+	_speed_label.text = label
+	_collapsed_speed_label.text = label
+	Engine.time_scale = SPEED_VALUES[_speed_index]
 
 
 func _on_period_changed(_new_period: String, _old_period: String) -> void:
@@ -354,11 +258,9 @@ func _on_period_changed(_new_period: String, _old_period: String) -> void:
 
 
 func _on_time_updated(normalized: float) -> void:
-	# Update period progress (progress within current period)
 	var period_progress = fmod(normalized * 4.0, 1.0)
 	_progress_bar.value = period_progress
 	
-	# Update time display from GameTime autoload
 	var game_time = get_node_or_null("/root/GameTime")
 	if game_time:
 		_time_label.text = game_time.game_time_string
@@ -375,37 +277,13 @@ func _update_display() -> void:
 	
 	var color = PERIOD_COLORS[period_index]
 	
-	# Update icon
 	_icon_label.text = PERIOD_ICONS[period_index]
-	
-	# Update time color
 	_time_label.add_theme_color_override("font_color", color)
-	
-	# Update period name
 	_period_label.text = period_name
 	
-	# Update progress bar color
 	var fill = _progress_bar.get_theme_stylebox("fill").duplicate() as StyleBoxFlat
 	fill.bg_color = color
 	_progress_bar.add_theme_stylebox_override("fill", fill)
 	
-	# Highlight current period button
 	for i in range(_period_buttons.size()):
-		var btn = _period_buttons[i]
-		if i == period_index:
-			btn.modulate = color
-		else:
-			btn.modulate = Color.WHITE
-
-
-func _get_editor_scale() -> float:
-	if Engine.is_editor_hint():
-		var ei = EditorInterface.get_editor_settings()
-		if ei:
-			return EditorInterface.get_editor_scale()
-	return 2.0
-
-
-# Shorthand for scaling
-func _s(val: int) -> int:
-	return int(val * _editor_scale)
+		_period_buttons[i].modulate = color if i == period_index else Color.WHITE

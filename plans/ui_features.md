@@ -2,7 +2,7 @@
 
 ## NPC Info Panel (DONE)
 
-`ui/npc_info_panel.gd` + `ui/npc_info_manager.gd`
+`ui/npc_info_panel.gd` + `ui/npc_info_manager.gd` (extends `ui/base_widget.gd`)
 
 **Style:** Wildlife documentary + 4th wall breaking
 
@@ -52,6 +52,8 @@ Shows brief indicator on change. Use `pause_for_menu()` / `resume_from_menu()` f
 
 `ui/npc_state_indicator.gd`
 
+**Synced with NPC Info Panel** via `ui/npc_data_store.gd` (static singleton pattern).
+
 **Style:** Dark translucent panel with status emoji + dialogue text
 
 **Features:**
@@ -72,6 +74,34 @@ Shows brief indicator on change. Use `pause_for_menu()` / `resume_from_menu()` f
 | tired, frustrated, gave_up | 😮‍💨 | Exhausted |
 | caught | 😤 | Triumphant |
 | _(unknown)_ | 💭 | Default |
+
+---
+
+## Widget Architecture
+
+### BaseWidget (`ui/base_widget.gd`)
+Shared base class for TOD and NPC widgets:
+- Shared style constants (colors, fonts)
+- Expand/collapse with keybind support
+- Helper methods: `_create_panel_style()`, `_create_label()`, `_create_button()`
+- Scale-aware sizing via `_s(val)`
+
+### NPCDataStore (`ui/npc_data_store.gd`)
+Centralized NPC state - **no autoload** (spoils undo history), uses static singleton:
+```gdscript
+static var _instance: NPCDataStore = null
+static func get_instance() -> NPCDataStore
+```
+- Emits `state_changed(npc_id, data)` signal
+- Both speech bubble and info panel listen to same signal
+- Single source of truth prevents desync
+
+### NPCUIUtils (`ui/npc_ui_utils.gd`)
+Shared emoji/color mappings:
+- `get_status_emoji(state) -> String`
+- `get_status_color(state) -> Color`
+
+---
 
 ### Message Priority System (TODO)
 
