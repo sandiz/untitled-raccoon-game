@@ -79,6 +79,9 @@ func _update_material_color() -> void:
 
 func set_state_idle() -> void:
 	_target_color = idle_color
+	# Immediately hide mesh when going idle
+	if _mesh:
+		_mesh.visible = false
 
 
 func set_state_suspicious() -> void:

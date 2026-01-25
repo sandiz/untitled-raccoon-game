@@ -1,13 +1,23 @@
+@tool
 class_name GhibliShaderApplier
 extends Node
-## Utility to apply Ghibli-style toon shading and outlines to character meshes.
-## Attach to any parent node containing MeshInstance3D children.
+## Utility to apply Ghibli-style toon shading and outlines to meshes.
+## Can apply to parent's children or entire scene tree.
 
 @export var apply_toon_shader: bool = true
 @export var apply_outline: bool = true
 @export var outline_color: Color = Color(0.15, 0.1, 0.1, 1.0)
 @export var outline_width: float = 0.025
 @export var enable_rim_light: bool = true
+@export var scene_wide: bool = false  ## Apply to entire scene tree instead of just parent
+@export var watch_for_new: bool = true  ## Auto-apply to new meshes added to scene
+
+## Mesh names to exclude (contains check)
+var _exclude_names: Array[String] = [
+	"floor", "ground", "terrain", "plane",
+	"selection", "vision", "indicator", "ring",
+	"sky", "water", "particle"
+]
 
 var _outline_shader: Shader
 var _toon_shader: Shader
@@ -17,18 +27,59 @@ func _ready() -> void:
 	_outline_shader = load("res://shaders/outline.gdshader")
 	_toon_shader = load("res://shaders/toon.gdshader")
 	
-	# Apply to all mesh instances in parent
-	var parent = get_parent()
-	if parent:
-		_apply_to_node_recursive(parent)
+	if scene_wide:
+		# Apply to entire scene tree
+		call_deferred("_apply_scene_wide")
+		
+		# Watch for new nodes if enabled
+		if watch_for_new and not Engine.is_editor_hint():
+			get_tree().node_added.connect(_on_node_added)
+	else:
+		# Apply to all mesh instances in parent
+		var parent = get_parent()
+		if parent:
+			_apply_to_node_recursive(parent)
+
+
+func _apply_scene_wide() -> void:
+	var root = get_tree().current_scene
+	if root:
+		_apply_to_node_recursive(root)
+
+
+func _on_node_added(node: Node) -> void:
+	# Auto-apply shader to new MeshInstance3D nodes
+	if node is MeshInstance3D:
+		# Defer to let the node fully initialize
+		call_deferred("_try_apply_to_mesh", node)
+
+
+func _try_apply_to_mesh(mesh_instance: MeshInstance3D) -> void:
+	if is_instance_valid(mesh_instance) and not _should_exclude(mesh_instance):
+		_apply_shaders_to_mesh(mesh_instance)
 
 
 func _apply_to_node_recursive(node: Node) -> void:
 	if node is MeshInstance3D:
-		_apply_shaders_to_mesh(node)
+		if not _should_exclude(node):
+			_apply_shaders_to_mesh(node)
 	
 	for child in node.get_children():
 		_apply_to_node_recursive(child)
+
+
+func _should_exclude(mesh_instance: MeshInstance3D) -> bool:
+	var name_lower = mesh_instance.name.to_lower()
+	for exclude in _exclude_names:
+		if exclude in name_lower:
+			return true
+	
+	# Also exclude if already has our shader
+	var mat = mesh_instance.get_surface_override_material(0)
+	if mat is ShaderMaterial and mat.shader == _toon_shader:
+		return true
+	
+	return false
 
 
 func _apply_shaders_to_mesh(mesh_instance: MeshInstance3D) -> void:
@@ -72,10 +123,8 @@ func _create_toon_material(original: Material) -> ShaderMaterial:
 			toon_mat.set_shader_parameter("use_texture", true)
 	
 	toon_mat.set_shader_parameter("base_color", base_color)
-	toon_mat.set_shader_parameter("shadow_threshold", 0.3)
-	toon_mat.set_shader_parameter("light_threshold", 0.7)
-	toon_mat.set_shader_parameter("shadow_color", Color(0.6, 0.5, 0.6, 1.0))
-	toon_mat.set_shader_parameter("highlight_color", Color(1.0, 1.0, 0.95, 1.0))
+	toon_mat.set_shader_parameter("shadow_strength", 0.25)
+	toon_mat.set_shader_parameter("shadow_threshold", 0.4)
 	toon_mat.set_shader_parameter("enable_rim", enable_rim_light)
 	toon_mat.set_shader_parameter("rim_color", Color(1.0, 0.95, 0.9, 1.0))
 	toon_mat.set_shader_parameter("rim_power", 3.0)

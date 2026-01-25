@@ -85,10 +85,21 @@ Pop-in animation, gentle bob, billboard to camera.
 
 ### Shaders (DONE)
 - `shaders/outline.gdshader` - Inverted hull outline (cull_front, vertex expansion)
-- `shaders/toon.gdshader` - Cel shading with 3 bands + rim light
+- `shaders/toon.gdshader` - Soft cel shading (25% shadow darkening, not harsh black)
+- `shaders/selection_ring.gdshader` - Crisp cyan circle for selected NPCs
 - `scripts/ghibli_shader_applier.gd` - Auto-applies to MeshInstance3D children
 
-**Usage:** Add `GhibliShaderApplier` node as child of mesh container.
+**Toon Shader Settings:**
+- `shadow_strength = 0.25` - Shadows only 25% darker than lit areas
+- `shadow_threshold = 0.4` - Where shadow edge falls
+- Soft, readable shadows while maintaining cel-shaded look
+
+**Scene-Wide Application:**
+- `SceneShaderApplier` node in main.tscn with `scene_wide = true`
+- `watch_for_new = true` - Auto-applies to newly generated meshes
+- Excludes: floor, ground, terrain, selection, vision, water, particles
+
+**Usage:** Add `GhibliShaderApplier` node as child of mesh container, or use scene-wide.
 
 ### Day/Night Cycle (DONE)
 - `systems/day_night_cycle.gd` - 10 min cycle, 4 periods, 30s transitions

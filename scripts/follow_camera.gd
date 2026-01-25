@@ -1,12 +1,12 @@
 extends Camera3D
 
 @export var target_path: NodePath
-@export var distance: float = 15.0
-@export var height: float = 12.0
+@export var distance: float = 12.0
+@export var height: float = 10.0
 @export var smoothing: float = 5.0
 @export var zoom_speed: float = 0.5
 @export var min_zoom: float = 0.5
-@export var max_zoom: float = 1.8
+@export var max_zoom: float = 1.4
 @export var zoom_smoothing: float = 8.0
 @export var rotate_speed: float = 0.005
 @export var rotate_smoothing: float = 8.0

@@ -2,7 +2,6 @@
 
 [ext_resource type="Texture2D" uid="uid://g1l2akl7bpva" path="res://assets/skybox/goose_sky.png" id="1_skybox"]
 [ext_resource type="PackedScene" uid="uid://dwehxim8vlojo" path="res://npcs/shopkeeper.tscn" id="2_shopkeeper"]
-[ext_resource type="Script" uid="uid://df0kwlb24vvi0" path="res://scripts/follow_camera.gd" id="3_camera"]
 [ext_resource type="PackedScene" uid="uid://cplayer001" path="res://player/player.tscn" id="5_player"]
 [ext_resource type="Script" uid="uid://bc68lbr02g646" path="res://systems/shop_item.gd" id="6_shop_item"]
 [ext_resource type="Script" uid="uid://bkd8iey6km0o5" path="res://systems/day_night_cycle.gd" id="7_daynight"]
@@ -11,6 +10,8 @@
 [ext_resource type="Script" uid="uid://cdm2e4irmkotk" path="res://ui/npc_info_manager.gd" id="10_info_mgr"]
 [ext_resource type="Script" uid="uid://br0u1dw415co" path="res://systems/game_speed_manager.gd" id="11_speed"]
 [ext_resource type="PackedScene" path="res://ui/tod_clock_widget.tscn" id="12_clock"]
+[ext_resource type="Script" uid="uid://df0kwlb24vvi0" path="res://scripts/follow_camera.gd" id="3_camera"]
+[ext_resource type="Script" path="res://scripts/ghibli_shader_applier.gd" id="13_ghibli"]
 
 [sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_1"]
 panorama = ExtResource("1_skybox")
@@ -90,6 +91,9 @@ size = Vector3(0.25, 0.25, 0.25)
 
 [node name="Main" type="Node3D"]
 
+[node name="SceneShaderApplier" type="Node" parent="."]
+script = ExtResource("13_ghibli")
+
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_1")
 camera_attributes = SubResource("CameraAttributesPractical_1")
@@ -117,7 +121,7 @@ size = Vector3(120, 40, 120)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.005156994, 0)
 
 [node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
-transform = Transform3D(0.24309546, 0, 0, 0, 1, 0, 0, 0, 0.25134405, 0, 0, 0)
+transform = Transform3D(0.2397607, 0, 0, 0, 0.9862821, 0, 0, 0, 0.24789615, 0, 0, 0)
 navigation_mesh = SubResource("NavigationMesh_1")
 
 [node name="Floor" type="StaticBody3D" parent="NavigationRegion3D"]
@@ -147,8 +151,7 @@ script = ExtResource("10_info_mgr")
 info_panel_path = NodePath("../NPCInfoPanel")
 camera_path = NodePath("../Camera3D")
 player_path = NodePath("../Player")
-max_distance = 20.0
-proximity_distance = 10.0
+max_click_distance = null
 
 [node name="GameSpeedManager" type="Node" parent="."]
 script = ExtResource("11_speed")

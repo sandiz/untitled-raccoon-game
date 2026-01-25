@@ -42,6 +42,13 @@ var _state_indicator: NPCStateIndicator = null
 ## Vision indicator on ground
 var _vision_indicator: VisionIndicator = null
 
+## Timer for suspicious state timeout
+var _suspicious_timer: float = 0.0
+const SUSPICIOUS_TIMEOUT: float = 3.0  # Seconds before returning to idle
+
+## Selection ring visual indicator
+var _selection_ring: SelectionRing
+
 # ═══════════════════════════════════════
 # EXPORTS
 # ═══════════════════════════════════════
@@ -95,6 +102,14 @@ func _ready() -> void:
 	_data_store = NPCDataStore.get_instance()
 	npc_id = personality.npc_id if personality else str(name)
 	
+	# Register with data store for selection
+	_data_store.register_npc(npc_id, self)
+	_data_store.selection_changed.connect(_on_selection_changed)
+	
+	# Create selection ring
+	_selection_ring = SelectionRing.new()
+	add_child(_selection_ring)
+	
 	# Create floating state indicator
 	_state_indicator = NPCStateIndicator.new()
 	_state_indicator.npc_id = npc_id  # Set npc_id for data store sync
@@ -109,6 +124,8 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	if not Engine.is_editor_hint():
 		social.cleanup()
+		if _data_store:
+			_data_store.unregister_npc(npc_id)
 
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint():
@@ -128,6 +145,12 @@ func _physics_process(delta: float) -> void:
 	
 	# Update chase cooldown timer
 	_update_chase_cooldown(delta)
+	
+	# Suspicious state timeout - return to idle after a while
+	if current_state == "suspicious":
+		_suspicious_timer += delta
+		if _suspicious_timer >= SUSPICIOUS_TIMEOUT:
+			set_current_state("idle")
 	
 	# Apply gravity
 	if not is_on_floor():
@@ -182,7 +205,7 @@ func _on_target_spotted(target: Node3D, spot_type: String) -> void:
 	match spot_type:
 		"glimpse":
 			emotional_state.on_heard_noise()
-			_update_state_indicator("suspicious")
+			set_current_state("suspicious")
 		"noticed":
 			emotional_state.on_saw_target()
 			set_current_state("alert")
@@ -311,6 +334,11 @@ func on_item_recovered() -> void:
 func set_current_state(state: String) -> void:
 	var old_state = current_state
 	current_state = state
+	
+	# Reset suspicious timer when entering suspicious state
+	if state == "suspicious":
+		_suspicious_timer = 0.0
+	
 	# Play animation based on new state
 	if state != old_state:
 		_play_state_animation(state)
@@ -534,3 +562,16 @@ func get_narrator_line() -> String:
 
 func has_recent_alerts() -> bool:
 	return social.has_recent_alerts()
+
+# ═══════════════════════════════════════
+# SELECTION
+# ═══════════════════════════════════════
+
+func _on_selection_changed(selected_ids: Array) -> void:
+	if not _selection_ring:
+		return
+	
+	if npc_id in selected_ids:
+		_selection_ring.show_ring()
+	else:
+		_selection_ring.hide_ring()

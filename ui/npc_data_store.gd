@@ -8,12 +8,17 @@ static var _instance: NPCDataStore = null
 # Signals for reactive updates
 signal state_changed(npc_id: String, data: Dictionary)
 signal emotions_changed(npc_id: String, emotions: Dictionary)
+signal selection_changed(selected_ids: Array)
 
-# NPC data: {npc_id: {state, dialogue, emotions, personality, etc}}
+# NPC data: {npc_id: {state, dialogue, emotions, personality, node, etc}}
 var _npc_data: Dictionary = {}
 
-# Current focused NPC (for UI display)
-var _focused_npc_id: String = ""
+# Selected NPCs (max 3)
+var _selected_npc_ids: Array[String] = []
+const MAX_SELECTED: int = 3
+
+# NPC node references for raycasting
+var _npc_nodes: Dictionary = {}  # npc_id -> Node3D
 
 
 static func get_instance() -> NPCDataStore:
@@ -51,14 +56,71 @@ func set_npc_metadata(npc_id: String, metadata: Dictionary) -> void:
 	_npc_data[npc_id].merge(metadata, true)
 
 
-## Set which NPC is currently focused (for UI)
-func set_focused_npc(npc_id: String) -> void:
-	_focused_npc_id = npc_id
+## Register NPC node for selection raycasting
+func register_npc(npc_id: String, node: Node3D) -> void:
+	_npc_nodes[npc_id] = node
 
 
-## Get focused NPC id
-func get_focused_npc_id() -> String:
-	return _focused_npc_id
+## Unregister NPC node
+func unregister_npc(npc_id: String) -> void:
+	_npc_nodes.erase(npc_id)
+	deselect_npc(npc_id)
+
+
+## Get NPC node by id
+func get_npc_node(npc_id: String) -> Node3D:
+	return _npc_nodes.get(npc_id)
+
+
+## Get NPC id from node
+func get_npc_id_from_node(node: Node3D) -> String:
+	for id in _npc_nodes:
+		if _npc_nodes[id] == node:
+			return id
+	return ""
+
+
+## Select an NPC (adds to selection, max 3)
+func select_npc(npc_id: String) -> void:
+	if npc_id in _selected_npc_ids:
+		return
+	if _selected_npc_ids.size() >= MAX_SELECTED:
+		_selected_npc_ids.pop_front()  # Remove oldest
+	_selected_npc_ids.append(npc_id)
+	selection_changed.emit(_selected_npc_ids.duplicate())
+
+
+## Deselect an NPC
+func deselect_npc(npc_id: String) -> void:
+	if npc_id in _selected_npc_ids:
+		_selected_npc_ids.erase(npc_id)
+		selection_changed.emit(_selected_npc_ids.duplicate())
+
+
+## Deselect all NPCs
+func deselect_all() -> void:
+	if _selected_npc_ids.size() > 0:
+		_selected_npc_ids.clear()
+		selection_changed.emit(_selected_npc_ids.duplicate())
+
+
+## Check if NPC is selected
+func is_selected(npc_id: String) -> bool:
+	return npc_id in _selected_npc_ids
+
+
+## Get all selected NPC ids
+func get_selected_ids() -> Array[String]:
+	return _selected_npc_ids.duplicate()
+
+
+## Get all selected NPC nodes
+func get_selected_nodes() -> Array[Node3D]:
+	var nodes: Array[Node3D] = []
+	for id in _selected_npc_ids:
+		if _npc_nodes.has(id):
+			nodes.append(_npc_nodes[id])
+	return nodes
 
 
 ## Get all data for an NPC

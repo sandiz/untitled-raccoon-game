@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dptkxwij7qvks"
-path="res://.godot/imported/shopkeeper_portrait_stylized.png-fada4e8c92492cf7385603944e0649fa.ctex"
+uid="uid://d13f2ffo88sux"
+path="res://.godot/imported/bernard_portrait.png-d959b2fd10c27ac9c47b83cf8d5a0b1a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/portraits/shopkeeper_portrait_stylized.png"
-dest_files=["res://.godot/imported/shopkeeper_portrait_stylized.png-fada4e8c92492cf7385603944e0649fa.ctex"]
+source_file="res://assets/portraits/bernard_portrait.png"
+dest_files=["res://.godot/imported/bernard_portrait.png-d959b2fd10c27ac9c47b83cf8d5a0b1a.ctex"]
 
 [params]
 

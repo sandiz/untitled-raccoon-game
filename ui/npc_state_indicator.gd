@@ -29,6 +29,8 @@ var _time: float = 0.0
 
 
 var _data_store: NPCDataStore
+var _is_selected: bool = false
+var _pending_dialogue: Dictionary = {}  # Store dialogue to show when selected
 
 
 func _ready() -> void:
@@ -40,6 +42,7 @@ func _ready() -> void:
 	# Connect to data store for reactive updates
 	_data_store = NPCDataStore.get_instance()
 	_data_store.state_changed.connect(_on_state_changed)
+	_data_store.selection_changed.connect(_on_selection_changed)
 
 
 func _get_editor_scale() -> float:
@@ -267,5 +270,28 @@ func _on_state_changed(changed_npc_id: String, data: Dictionary) -> void:
 	var state = data.get("state", "idle")
 	var dialogue = data.get("dialogue", "")
 	
+	# Store dialogue for when selected
+	_pending_dialogue = {"state": state, "dialogue": dialogue}
+	
+	# Only show if selected
+	if not _is_selected:
+		return
+	
 	if not dialogue.is_empty():
 		show_dialogue(dialogue, 0.0, state)
+
+
+func _on_selection_changed(selected_ids: Array) -> void:
+	var was_selected = _is_selected
+	_is_selected = npc_id in selected_ids
+	
+	if _is_selected and not was_selected:
+		# Just got selected - show pending dialogue if any
+		if not _pending_dialogue.is_empty():
+			var state = _pending_dialogue.get("state", "idle")
+			var dialogue = _pending_dialogue.get("dialogue", "")
+			if not dialogue.is_empty():
+				show_dialogue(dialogue, 0.0, state)
+	elif not _is_selected and was_selected:
+		# Got deselected - hide indicator
+		hide_indicator()
