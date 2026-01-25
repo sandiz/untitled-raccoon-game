@@ -4,14 +4,14 @@
 Mischief sim + Studio Ghibli = warm, hand-crafted stealth comedy
 
 ### Core Look
-- **Outlines**: Soft dark outlines on characters (toon shader)
-- **Shading**: Cel/toon, 2-3 color bands
-- **Colors**: Warm, slightly desaturated, nostalgic
+- **No Outlines**: Clean pastel aesthetic without harsh edges
+- **Shading**: Soft cel/toon with gentle shadow transitions
+- **Colors**: Warm, slightly desaturated, nostalgic pastels
 - **Skies**: Painterly gradients, brushstroke clouds
-- **Shadows**: Soft, diffused
+- **Shadows**: Soft, diffused (25% darkening only)
 
 ### References
-Sly Cooper (stealth) + Untitled Goose Game (mischief) + Ghibli (warmth)
+Untitled Goose Game (mischief) + Ghibli (warmth) + Animal Crossing (pastel)
 
 ---
 
@@ -83,23 +83,22 @@ Pop-in animation, gentle bob, billboard to camera.
 
 ## Tech Implementation
 
-### Shaders (DONE)
-- `shaders/outline.gdshader` - Inverted hull outline (cull_front, vertex expansion)
-- `shaders/toon.gdshader` - Soft cel shading (25% shadow darkening, not harsh black)
+### Shaders
+- `shaders/toon.gdshader` - Soft cel shading with gentle shadows
 - `shaders/selection_ring.gdshader` - Crisp cyan circle for selected NPCs
-- `scripts/ghibli_shader_applier.gd` - Auto-applies to MeshInstance3D children
+- `scripts/ghibli_shader_applier.gd` - Auto-applies toon shader to meshes
 
 **Toon Shader Settings:**
 - `shadow_strength = 0.25` - Shadows only 25% darker than lit areas
 - `shadow_threshold = 0.4` - Where shadow edge falls
-- Soft, readable shadows while maintaining cel-shaded look
+- Soft, readable shadows - pastel aesthetic without outlines
+
+**Design Decision:** Outlines were tested (inverted hull + post-process) but dropped in favor of clean pastel look. The soft cel shading provides enough definition without harsh edges.
 
 **Scene-Wide Application:**
 - `SceneShaderApplier` node in main.tscn with `scene_wide = true`
 - `watch_for_new = true` - Auto-applies to newly generated meshes
 - Excludes: floor, ground, terrain, selection, vision, water, particles
-
-**Usage:** Add `GhibliShaderApplier` node as child of mesh container, or use scene-wide.
 
 ### Day/Night Cycle (DONE)
 - `systems/day_night_cycle.gd` - 10 min cycle, 4 periods, 30s transitions
@@ -109,8 +108,10 @@ Pop-in animation, gentle bob, billboard to camera.
 
 ### Vision Indicator (DONE)
 - `shaders/vision_cone.gdshader` - Radial cone glow with pulse
-- `npcs/vision_indicator.gd` - State-driven (idle/suspicious/chasing)
-- Amber @20% suspicious, Orange @40% chasing
+- `npcs/vision_indicator.gd` - Amber/orange color by state
+- Immediately hides when returning to idle
 
-### Remaining
-- **Target ring** - Player-lock ring indicator
+### Selection Ring (DONE)
+- `shaders/selection_ring.gdshader` - Crisp cyan circle outline
+- `npcs/selection_ring.gd` - Show/hide with fade animation
+- Only visible for selected NPCs
