@@ -43,8 +43,8 @@ func _ready() -> void:
 	_load_settings()
 	_auto_find_references()
 	if auto_start:
-		# Start at 3 AM for night testing (0.875 normalized)
-		_current_time = 0.875 * settings.cycle_duration
+		# Start at 9 AM (0.125 normalized: 0.125 * 24 + 6 = 9)
+		_current_time = 0.125 * settings.cycle_duration
 		_update_lighting()
 		# Debug output
 		print("[DayNightCycle] Ready - Period: ", PERIOD_NAMES[_current_period])
@@ -53,6 +53,9 @@ func _ready() -> void:
 	
 	# Cache materials after other scripts have run (use timer to ensure GhibliShaderApplier finishes)
 	get_tree().create_timer(0.1).timeout.connect(_cache_shader_materials)
+	
+	# Initialize save manager (ensures it's ready for F5/F9/Shift+R hotkeys)
+	SimulationSaveManager.get_instance()
 
 
 func _load_settings() -> void:
@@ -296,6 +299,11 @@ func get_current_period_enum() -> TimePeriod:
 
 func get_normalized_time() -> float:
 	return _current_time / settings.cycle_duration
+
+
+func set_normalized_time(normalized: float) -> void:
+	_current_time = clamp(normalized, 0.0, 1.0) * settings.cycle_duration
+	_update_lighting()
 
 
 func get_game_hour() -> int:

@@ -20,21 +20,21 @@ const SPEED_LABELS := ["⅒x", "¼x", "½x", "1x", "2x", "4x"]
 
 var _day_night: DayNightCycle = null
 var _speed_index: int = 3  # Default to 1x
-
 # UI elements specific to this widget
 var _container: PanelContainer
 var _row: HBoxContainer
 var _icon_label: Label
 var _time_label: Label
+var _progress_bar: ProgressBar
 var _period_buttons: Array[Button] = []
 var _pause_btn: Button
 var _speed_label: Label
-
 
 func _ready() -> void:
 	_expand_keybind = KEY_V
 	super._ready()
 	call_deferred("_connect_day_night")
+
 
 
 func _connect_day_night() -> void:
@@ -67,8 +67,11 @@ func _find_day_night_recursive(node: Node) -> DayNightCycle:
 
 
 func _build_ui() -> void:
-	# Sleek single-row container
+	# Sleek single-row container - positioned at right, grows left
 	_container = PanelContainer.new()
+	_container.size_flags_horizontal = Control.SIZE_SHRINK_END  # Align to right
+	_container.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_container.grow_horizontal = Control.GROW_DIRECTION_BEGIN  # Grow left
 	var style = _create_panel_style(6, 6)
 	style.content_margin_left = _s(10)  # Extra left padding
 	_container.add_theme_stylebox_override("panel", style)
@@ -96,6 +99,28 @@ func _build_ui() -> void:
 	var expand_btn = _create_expand_button()
 	expand_btn.custom_minimum_size = Vector2(_s(20), _s(20))
 	_row.add_child(expand_btn)
+	
+	# === 24h PROGRESS BAR (clickable) ===
+	_progress_bar = ProgressBar.new()
+	_progress_bar.max_value = 1.0
+	_progress_bar.value = 0.5
+	_progress_bar.show_percentage = false
+	_progress_bar.custom_minimum_size = Vector2(0, _s(8))
+	_progress_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_progress_bar.mouse_filter = Control.MOUSE_FILTER_STOP
+	_progress_bar.gui_input.connect(_on_progress_bar_input)
+	
+	var fill = StyleBoxFlat.new()
+	fill.bg_color = Color(0.35, 0.35, 0.4)  # Muted gray
+	fill.set_corner_radius_all(_s(4))
+	_progress_bar.add_theme_stylebox_override("fill", fill)
+	
+	var bg = StyleBoxFlat.new()
+	bg.bg_color = Color(0.12, 0.12, 0.15)  # Dark subtle bg
+	bg.set_corner_radius_all(_s(4))
+	_progress_bar.add_theme_stylebox_override("background", bg)
+	
+	main_vbox.add_child(_progress_bar)
 	
 	# === EXPANDED BOX ===
 	_expanded_box = HBoxContainer.new()
@@ -165,9 +190,22 @@ func _on_period_changed(_new_period: String, _old_period: String) -> void:
 	_update_display()
 
 
-func _on_time_updated(_normalized: float) -> void:
+func _on_time_updated(normalized: float) -> void:
 	if _day_night:
 		_time_label.text = _day_night.get_game_time_string()
+		_progress_bar.value = normalized
+
+
+func _on_progress_bar_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		# Calculate normalized time from click position
+		var click_x = event.position.x
+		var bar_width = _progress_bar.size.x
+		var normalized = clamp(click_x / bar_width, 0.0, 1.0)
+		
+		# Set the time
+		if _day_night:
+			_day_night.set_normalized_time(normalized)
 
 
 func _update_display() -> void:
@@ -184,6 +222,10 @@ func _update_display() -> void:
 	_icon_label.text = PERIOD_ICONS[period_index]
 	_time_label.text = _day_night.get_game_time_string()
 	_time_label.add_theme_color_override("font_color", color)
+	
+	# Update progress bar
+	var normalized = _day_night.get_normalized_time()
+	_progress_bar.value = normalized
 	
 	for i in range(_period_buttons.size()):
 		_period_buttons[i].modulate = color if i == period_index else Color.WHITE

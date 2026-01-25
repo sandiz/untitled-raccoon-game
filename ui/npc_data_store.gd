@@ -1,6 +1,8 @@
 class_name NPCDataStore
+extends Node
 ## Centralized data store for NPC state - no autoload, uses static pattern.
 ## Both speech bubble and info panel read from here to stay in sync.
+## Handles message priority - high priority messages block lower priority updates.
 
 # Static instance (lazy initialized)
 static var _instance: NPCDataStore = null
@@ -10,8 +12,39 @@ signal state_changed(npc_id: String, data: Dictionary)
 signal emotions_changed(npc_id: String, emotions: Dictionary)
 signal selection_changed(selected_ids: Array)
 
+# Message priority levels
+enum Priority { LOW = 0, NORMAL = 1, HIGH = 2, CRITICAL = 3 }
+
+# Minimum display times per priority (seconds)
+const PRIORITY_MIN_TIMES := {
+	Priority.LOW: 0.0,       # Can be replaced immediately
+	Priority.NORMAL: 1.0,    # At least 1 second
+	Priority.HIGH: 2.5,      # Important messages stay 2.5s
+	Priority.CRITICAL: 4.0,  # Critical stays 4s
+}
+
+# State to priority mapping
+const STATE_PRIORITIES := {
+	"idle": Priority.LOW,
+	"calm": Priority.LOW,
+	"returning": Priority.LOW,
+	"alert": Priority.NORMAL,
+	"suspicious": Priority.NORMAL,
+	"investigating": Priority.NORMAL,
+	"searching": Priority.HIGH,
+	"chasing": Priority.HIGH,
+	"angry": Priority.HIGH,
+	"tired": Priority.NORMAL,
+	"frustrated": Priority.NORMAL,
+	"gave_up": Priority.NORMAL,
+	"caught": Priority.CRITICAL,
+}
+
 # NPC data: {npc_id: {state, dialogue, emotions, personality, node, etc}}
 var _npc_data: Dictionary = {}
+
+# Priority tracking per NPC: {npc_id: {priority, locked_until}}
+var _npc_priority: Dictionary = {}
 
 # Selected NPCs (max 3)
 var _selected_npc_ids: Array[String] = []
@@ -24,18 +57,82 @@ var _npc_nodes: Dictionary = {}  # npc_id -> Node3D
 static func get_instance() -> NPCDataStore:
 	if _instance == null:
 		_instance = NPCDataStore.new()
+		# Add to tree so _process runs for priority timing
+		if Engine.get_main_loop():
+			var root = Engine.get_main_loop().root
+			if root:
+				root.call_deferred("add_child", _instance)
 	return _instance
 
 
+func _process(_delta: float) -> void:
+	# Update priority locks based on elapsed time
+	var current_time = Time.get_ticks_msec() / 1000.0
+	for npc_id in _npc_priority:
+		var pdata = _npc_priority[npc_id]
+		if pdata.locked_until > 0.0 and current_time >= pdata.locked_until:
+			pdata.locked_until = 0.0  # Unlock
+
+
 ## Update NPC state and dialogue - called by shopkeeper/NPC
-func update_npc_state(npc_id: String, state: String, dialogue: String) -> void:
+## Optional priority parameter (-1 = auto-derive from state)
+func update_npc_state(npc_id: String, state: String, dialogue: String, priority: int = -1) -> void:
 	if not _npc_data.has(npc_id):
 		_npc_data[npc_id] = {}
 	
+	# Determine priority from state if not explicitly provided
+	var msg_priority = priority if priority >= 0 else STATE_PRIORITIES.get(state, Priority.NORMAL)
+	
+	# Initialize priority tracking for this NPC if needed
+	if not _npc_priority.has(npc_id):
+		_npc_priority[npc_id] = {"priority": Priority.LOW, "locked_until": 0.0}
+	
+	var pdata = _npc_priority[npc_id]
+	var current_time = Time.get_ticks_msec() / 1000.0
+	var is_locked = pdata.locked_until > current_time
+	
+	# Check if current message is locked with higher priority
+	if is_locked and msg_priority < pdata.priority:
+		# Can't replace - current message has higher priority and is still locked
+		return
+	
+	# Same or lower priority can't replace if locked
+	if is_locked and msg_priority <= pdata.priority:
+		return
+	
+	# Update allowed - set new priority and lock time
+	pdata.priority = msg_priority
+	var min_time = PRIORITY_MIN_TIMES.get(msg_priority, 0.0)
+	pdata.locked_until = current_time + min_time if min_time > 0.0 else 0.0
+	
+	# Store state and dialogue
 	_npc_data[npc_id]["state"] = state
 	_npc_data[npc_id]["dialogue"] = dialogue
+	_npc_data[npc_id]["priority"] = msg_priority
 	
 	state_changed.emit(npc_id, _npc_data[npc_id])
+
+
+## Clear priority lock for an NPC (allows any update)
+func clear_priority_lock(npc_id: String) -> void:
+	if _npc_priority.has(npc_id):
+		_npc_priority[npc_id].locked_until = 0.0
+		_npc_priority[npc_id].priority = Priority.LOW
+
+
+## Check if an NPC's message is currently locked
+func is_priority_locked(npc_id: String) -> bool:
+	if not _npc_priority.has(npc_id):
+		return false
+	var current_time = Time.get_ticks_msec() / 1000.0
+	return _npc_priority[npc_id].locked_until > current_time
+
+
+## Get current priority level for an NPC
+func get_priority(npc_id: String) -> int:
+	if _npc_priority.has(npc_id):
+		return _npc_priority[npc_id].priority
+	return Priority.LOW
 
 
 ## Update NPC emotions - called by shopkeeper/NPC

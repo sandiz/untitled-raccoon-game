@@ -100,22 +100,16 @@ func _build_ui() -> void:
 	name_row.add_child(_name_label)
 	name_row.add_child(_create_expand_button())
 	
-	# Title + State row
-	var title_row = HBoxContainer.new()
-	title_row.add_theme_constant_override("separation", _s(8))
-	header_vbox.add_child(title_row)
-	
+	# Title row (just title now)
 	_title_label = _create_label("The Grumpy Shopkeeper", 14, SUBTITLE_COLOR)
 	_title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-	title_row.add_child(_title_label)
+	header_vbox.add_child(_title_label)
 	
+	# State row at bottom (aligned with title baseline area)
 	_state_label = _create_label("😌 Idle", 14)
-	_state_label.custom_minimum_size = Vector2(_s(90), 0)
-	_state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_state_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_state_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	title_row.add_child(_state_label)
+	_state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	header_vbox.add_child(_state_label)
 	
 	# === EXPANDED CONTENT ===
 	_expanded_box = VBoxContainer.new()
