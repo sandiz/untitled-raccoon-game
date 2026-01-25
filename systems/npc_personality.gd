@@ -78,10 +78,10 @@ func get_dialogue(event: String) -> String:
 	var lines: Array[String] = []
 	match event:
 		"idle": lines = dialogue_idle
-		"spotted": lines = dialogue_spotted
+		"spotted", "alert": lines = dialogue_spotted
 		"suspicious": lines = dialogue_suspicious
 		"chasing": lines = dialogue_chasing
-		"lost": lines = dialogue_lost
+		"lost", "searching": lines = dialogue_lost
 		"caught": lines = dialogue_caught
 		"gave_up": lines = dialogue_gave_up
 		"item_stolen": lines = dialogue_item_stolen

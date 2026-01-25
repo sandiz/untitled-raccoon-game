@@ -7,12 +7,16 @@
 **Style:** Wildlife documentary + 4th wall breaking
 
 **Shows:**
-- Narrator describes NPC like nature documentary
-- NPC breaks 4th wall, annoyed at being observed
+- Narrator describes NPC like nature documentary (🤔 emoji)
+- NPC dialogue with 💬 emoji, typewriter effect
 - Emotion stats (alertness, annoyance, exhaustion, suspicion)
-- Current state
+- Current state with status emoji (matches speech bubble)
 
-Auto-shows when player near NPC or looking at one. Colors: BG #FFF8E1, Border #795548
+**State emoji** (same as speech bubble for consistency):
+- 😌 Idle, 👀 Alert, 🤨 Suspicious, ❓ Searching
+- 😠 Chasing, 😮‍💨 Tired, 😤 Caught
+
+Auto-shows when player near NPC. Starts collapsed (N to expand).
 
 ---
 
@@ -41,6 +45,82 @@ Auto-shows when player near NPC or looking at one. Colors: BG #FFF8E1, Border #7
 | 4 | 4x |
 
 Shows brief indicator on change. Use `pause_for_menu()` / `resume_from_menu()` for pausing.
+
+---
+
+## NPC Speech Bubble (DONE)
+
+`ui/npc_state_indicator.gd`
+
+**Style:** Dark translucent panel with status emoji + dialogue text
+
+**Features:**
+- SubViewport renders 2D UI as billboard Sprite3D above NPC
+- Status-based emoji on left (😌 idle, 👀 alert, 😠 chasing, etc.)
+- Typewriter effect for text
+- Pop-in animation
+
+### Status Emoji Mapping
+
+| State | Emoji | Meaning |
+|-------|-------|---------|
+| idle, calm, returning | 😌 | Relaxed |
+| alert | 👀 | Watching |
+| suspicious, investigating | 🤨 | Suspicious |
+| chasing, angry | 😠 | Angry |
+| searching | ❓ | Confused |
+| tired, frustrated, gave_up | 😮‍💨 | Exhausted |
+| caught | 😤 | Triumphant |
+| _(unknown)_ | 💭 | Default |
+
+### Message Priority System (TODO)
+
+**Problem:** Rapid state transitions can replace important messages before player reads them.
+
+**Solution:** Priority-based minimum display time.
+
+#### Priority Levels
+```
+3 (Critical):  chasing, caught, angry
+2 (Alert):     alert, suspicious, investigating, searching
+1 (Passive):   idle, calm, returning
+0 (Default):   unknown states
+```
+
+#### Rules
+| Incoming vs Current | Action |
+|---------------------|--------|
+| Higher or equal priority | Replace immediately |
+| Lower priority + min_time passed | Replace |
+| Lower priority + min_time NOT passed | Queue (show after timer) |
+
+#### Implementation
+```gdscript
+var _current_priority: int = 0
+var _message_shown_at: float = 0.0
+var _min_display_time: float = 2.0  # seconds
+var _queued_message: Dictionary = {}  # {text, state, priority}
+```
+
+---
+
+## Time of Day Clock Widget (DONE)
+
+`ui/tod_clock_widget.gd`
+
+**Collapsed view shows:**
+- Period icon (🌅☀🌆🌙)
+- Time (HH:MM)
+- Speed indicator (1x, 2x, ⏸)
+- Time ratio (10m=24h)
+- Progress bar
+
+**Expanded view adds:**
+- Period jump buttons
+- Pause/Play button
+- Speed up/down controls
+
+**Keybind:** V to toggle expand/collapse
 
 ---
 

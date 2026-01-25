@@ -12,7 +12,14 @@ var _current_npc: Node3D = null
 var _tween: Tween
 var _last_state: String = ""
 var _editor_scale: float = 1.0
-var _expanded: bool = true
+var _expanded: bool = false  # Start collapsed
+
+# Typewriter effect
+var _narrator_tween: Tween
+var _dialogue_tween: Tween
+var _narrator_full_text: String = ""
+var _dialogue_full_text: String = ""
+const TYPEWRITER_SPEED: float = 0.02  # Seconds per character
 
 # UI Elements (built in _ready)
 var _container: PanelContainer
@@ -64,6 +71,7 @@ func _toggle_expanded() -> void:
 	_expanded = not _expanded
 	_expanded_box.visible = _expanded
 	_expand_btn.text = "▲" if _expanded else "▼"
+	_expand_btn.release_focus()
 
 
 func _build_ui() -> void:
@@ -131,11 +139,13 @@ func _build_ui() -> void:
 	_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_row.add_child(_name_label)
 	
-	# Expand/collapse button
+	# Expand/collapse button (flat style to match clock widget)
 	_expand_btn = Button.new()
-	_expand_btn.text = "▲"
+	_expand_btn.text = "▼"  # Start collapsed
+	_expand_btn.flat = true
 	_expand_btn.add_theme_font_override("font", font)
 	_expand_btn.add_theme_font_size_override("font_size", _s(14))
+	_expand_btn.add_theme_color_override("font_color", text_color)
 	_expand_btn.custom_minimum_size = Vector2(_s(32), _s(28))
 	_expand_btn.pressed.connect(_toggle_expanded)
 	name_row.add_child(_expand_btn)
@@ -159,47 +169,79 @@ func _build_ui() -> void:
 	_state_label.add_theme_font_override("font", font)
 	_state_label.add_theme_font_size_override("font_size", _s(14))
 	_state_label.add_theme_color_override("font_color", text_color)
-	_state_label.text = "● Idle"
+	_state_label.text = "😌 Idle"
+	_state_label.custom_minimum_size = Vector2(_s(90), 0)  # Fixed width to prevent layout shift
+	_state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	title_row.add_child(_state_label)
 	
 	# === EXPANDED CONTENT ===
 	_expanded_box = VBoxContainer.new()
 	_expanded_box.add_theme_constant_override("separation", _s(12))
+	_expanded_box.visible = false  # Start collapsed
 	main_vbox.add_child(_expanded_box)
 	
 	# Separator
 	_expanded_box.add_child(HSeparator.new())
 	
-	# === NARRATOR TEXT === (fixed height to prevent layout shift)
+	# === NARRATOR TEXT === (with emoji, fixed height)
+	var narrator_row = HBoxContainer.new()
+	narrator_row.add_theme_constant_override("separation", _s(4))
+	narrator_row.alignment = BoxContainer.ALIGNMENT_BEGIN
+	_expanded_box.add_child(narrator_row)
+	
+	var narrator_emoji = Label.new()
+	narrator_emoji.text = "🤔"
+	narrator_emoji.add_theme_font_size_override("font_size", _s(16))
+	narrator_emoji.custom_minimum_size = Vector2(_s(22), 0)
+	narrator_emoji.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	narrator_row.add_child(narrator_emoji)
+	
 	_narrator_label = RichTextLabel.new()
 	_narrator_label.bbcode_enabled = true
 	_narrator_label.fit_content = false
 	_narrator_label.scroll_active = false
-	_narrator_label.custom_minimum_size = Vector2(0, _s(50))
+	_narrator_label.custom_minimum_size = Vector2(0, _s(42))
 	_narrator_label.clip_contents = true
+	_narrator_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_narrator_label.add_theme_font_override("normal_font", font)
 	_narrator_label.add_theme_font_override("italics_font", font)
 	_narrator_label.add_theme_font_size_override("normal_font_size", _s(14))
 	_narrator_label.add_theme_font_size_override("italics_font_size", _s(14))
 	_narrator_label.add_theme_color_override("default_color", subtitle_color)
 	_narrator_label.text = "[i]A quiet moment...[/i]"
-	_expanded_box.add_child(_narrator_label)
+	narrator_row.add_child(_narrator_label)
 	
 	# Separator
 	_expanded_box.add_child(HSeparator.new())
 	
-	# === DIALOGUE TEXT === (fixed height to prevent layout shift)
+	# === DIALOGUE TEXT === (with emoji, fixed height)
+	var dialogue_row = HBoxContainer.new()
+	dialogue_row.add_theme_constant_override("separation", _s(4))
+	dialogue_row.alignment = BoxContainer.ALIGNMENT_BEGIN
+	_expanded_box.add_child(dialogue_row)
+	
+	var dialogue_emoji = Label.new()
+	dialogue_emoji.text = "💬"
+	dialogue_emoji.add_theme_font_size_override("font_size", _s(16))
+	dialogue_emoji.custom_minimum_size = Vector2(_s(22), 0)
+	dialogue_emoji.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	dialogue_row.add_child(dialogue_emoji)
+	
 	_dialogue_label = RichTextLabel.new()
 	_dialogue_label.bbcode_enabled = true
 	_dialogue_label.fit_content = false
 	_dialogue_label.scroll_active = false
-	_dialogue_label.custom_minimum_size = Vector2(0, _s(50))
+	_dialogue_label.custom_minimum_size = Vector2(0, _s(42))
 	_dialogue_label.clip_contents = true
+	_dialogue_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_dialogue_label.add_theme_font_override("normal_font", font)
 	_dialogue_label.add_theme_font_size_override("normal_font_size", _s(16))
 	_dialogue_label.add_theme_color_override("default_color", text_color)
-	_dialogue_label.text = "\"Another quiet day...\""
-	_expanded_box.add_child(_dialogue_label)
+	_dialogue_label.text = "Another quiet day..."
+	dialogue_row.add_child(_dialogue_label)
+	
+	# Separator after dialogue
+	_expanded_box.add_child(HSeparator.new())
 	
 	# === STAT BARS === (in expanded box)
 	_stats_box = VBoxContainer.new()
@@ -323,7 +365,19 @@ func _update_narrator_text(personality, state: String) -> void:
 			"frustrated": text = "Defeat weighs heavy."
 			_: text = "Observe closely..."
 	
-	_narrator_label.text = "[i]%s[/i]" % text
+	# Typewriter effect
+	_narrator_full_text = text
+	if _narrator_tween:
+		_narrator_tween.kill()
+	_narrator_label.text = ""
+	_narrator_tween = create_tween()
+	for i in range(text.length()):
+		_narrator_tween.tween_callback(_add_narrator_char.bind(i))
+		_narrator_tween.tween_interval(TYPEWRITER_SPEED)
+
+
+func _add_narrator_char(index: int) -> void:
+	_narrator_label.text = "[i]%s[/i]" % _narrator_full_text.substr(0, index + 1)
 
 
 func _update_dialogue_text(personality, state: String) -> void:
@@ -344,27 +398,45 @@ func _update_dialogue_text(personality, state: String) -> void:
 			"frustrated": text = "This isn't over..."
 			_: text = "Stop staring."
 	
-	_dialogue_label.text = "\"%s\"" % text
+	# Strip quotes if present
+	var clean_text = text.trim_prefix("\"").trim_suffix("\"")
+	
+	# Typewriter effect
+	_dialogue_full_text = clean_text
+	if _dialogue_tween:
+		_dialogue_tween.kill()
+	_dialogue_label.text = ""
+	_dialogue_tween = create_tween()
+	for i in range(clean_text.length()):
+		_dialogue_tween.tween_callback(_add_dialogue_char.bind(i))
+		_dialogue_tween.tween_interval(TYPEWRITER_SPEED)
+
+
+func _add_dialogue_char(index: int) -> void:
+	_dialogue_label.text = _dialogue_full_text.substr(0, index + 1)
 
 
 func _update_state_label(state: String) -> void:
-	# Match symbols from NPCStateIndicator - plain ASCII
-	var state_symbols = {
-		"idle": "~",
-		"calm": "~",
-		"alert": "!",
-		"suspicious": "?",
-		"investigating": "?",
-		"searching": "?",
-		"angry": "!!",
-		"chasing": "!!",
-		"tired": "zzz",
-		"frustrated": "zzz",
-		"caught": "!"
+	# Same emoji mapping as NPCStateIndicator speech bubble
+	var state_emoji = {
+		"idle": "😌",
+		"calm": "😌",
+		"returning": "😌",
+		"alert": "👀",
+		"suspicious": "🤨",
+		"investigating": "🤨",
+		"searching": "❓",
+		"angry": "😠",
+		"chasing": "😠",
+		"tired": "😮‍💨",
+		"frustrated": "😮‍💨",
+		"gave_up": "😮‍💨",
+		"caught": "😤"
 	}
 	var state_colors = {
 		"idle": Color(0.3, 0.7, 0.3),
 		"calm": Color(0.3, 0.7, 0.3),
+		"returning": Color(0.3, 0.7, 0.3),
 		"alert": Color(0.9, 0.7, 0.0),
 		"suspicious": Color(0.2, 0.5, 0.9),
 		"investigating": Color(0.4, 0.6, 0.9),
@@ -373,11 +445,12 @@ func _update_state_label(state: String) -> void:
 		"chasing": Color(0.9, 0.1, 0.1),
 		"tired": Color(0.5, 0.5, 0.5),
 		"frustrated": Color(0.5, 0.5, 0.5),
+		"gave_up": Color(0.5, 0.5, 0.5),
 		"caught": Color(0.9, 0.8, 0.2)
 	}
-	var symbol = state_symbols.get(state, "-")
+	var emoji = state_emoji.get(state, "💭")
 	var color = state_colors.get(state, text_color)
-	_state_label.text = symbol + " " + state.capitalize()
+	_state_label.text = emoji + " " + state.capitalize()
 	_state_label.add_theme_color_override("font_color", color)
 
 

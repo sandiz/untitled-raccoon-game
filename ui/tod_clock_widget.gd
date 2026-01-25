@@ -34,6 +34,7 @@ var _progress_bar: ProgressBar
 var _period_buttons: Array[Button] = []
 var _pause_btn: Button
 var _speed_label: Label
+var _collapsed_speed_label: Label  # Speed indicator in collapsed view
 var _expand_btn: Button
 var _editor_scale: float = 1.0
 
@@ -122,12 +123,41 @@ func _setup_ui() -> void:
 	info_vbox.add_theme_constant_override("separation", _s(4))
 	_collapsed_row.add_child(info_vbox)
 	
+	# Time row (time + speed/ratio stack)
+	var time_row = HBoxContainer.new()
+	time_row.add_theme_constant_override("separation", _s(8))
+	info_vbox.add_child(time_row)
+	
 	# Time label (HH:MM) - BIG
 	_time_label = Label.new()
 	_time_label.add_theme_font_override("font", font)
 	_time_label.add_theme_font_size_override("font_size", _s(24))
 	_time_label.text = "08:00"
-	info_vbox.add_child(_time_label)
+	time_row.add_child(_time_label)
+	
+	# Speed + Ratio stacked vertically (pushed right)
+	var speed_ratio_vbox = VBoxContainer.new()
+	speed_ratio_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	speed_ratio_vbox.add_theme_constant_override("separation", 0)
+	time_row.add_child(speed_ratio_vbox)
+	
+	# Speed indicator on top (1x, 2x, or ⏸)
+	_collapsed_speed_label = Label.new()
+	_collapsed_speed_label.add_theme_font_override("font", font)
+	_collapsed_speed_label.add_theme_font_size_override("font_size", _s(12))
+	_collapsed_speed_label.add_theme_color_override("font_color", Color(0.55, 0.55, 0.6))
+	_collapsed_speed_label.text = "1x"
+	_collapsed_speed_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	speed_ratio_vbox.add_child(_collapsed_speed_label)
+	
+	# Time ratio below (10m=24h)
+	var ratio_label = Label.new()
+	ratio_label.add_theme_font_override("font", font)
+	ratio_label.add_theme_font_size_override("font_size", _s(10))
+	ratio_label.add_theme_color_override("font_color", Color(0.4, 0.4, 0.45))
+	ratio_label.text = "10m=24h"
+	ratio_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	speed_ratio_vbox.add_child(ratio_label)
 	
 	# Period name
 	_period_label = Label.new()
@@ -142,11 +172,13 @@ func _setup_ui() -> void:
 	_progress_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info_vbox.add_child(_progress_bar)
 	
-	# Expand button
+	# Expand button (flat style)
 	_expand_btn = Button.new()
 	_expand_btn.text = "▼"
+	_expand_btn.flat = true
 	_expand_btn.add_theme_font_override("font", font)
 	_expand_btn.add_theme_font_size_override("font_size", _s(14))
+	_expand_btn.add_theme_color_override("font_color", Color(0.95, 0.95, 0.9))
 	_expand_btn.custom_minimum_size = Vector2(_s(32), _s(32))
 	_expand_btn.pressed.connect(_toggle_expanded)
 	_collapsed_row.add_child(_expand_btn)
@@ -259,6 +291,7 @@ func _toggle_expanded() -> void:
 	_expanded = not _expanded
 	_expanded_box.visible = _expanded
 	_expand_btn.text = "▲" if _expanded else "▼"
+	_expand_btn.release_focus()
 
 
 func _on_collapsed_input(event: InputEvent) -> void:
@@ -270,6 +303,7 @@ func _on_period_button_pressed(index: int) -> void:
 	if _day_night:
 		_day_night.set_period(index as DayNightCycle.TimePeriod, false)
 	period_selected.emit(index)
+	get_viewport().gui_release_focus()
 
 
 func _on_pause_pressed() -> void:
@@ -277,23 +311,29 @@ func _on_pause_pressed() -> void:
 		if _day_night.is_paused():
 			_day_night.resume()
 			_pause_btn.text = "⏸ Pause"
+			_collapsed_speed_label.text = "%dx" % _current_speed
 		else:
 			_day_night.pause()
 			_pause_btn.text = "▶ Play"
+			_collapsed_speed_label.text = "⏸"
+	_pause_btn.release_focus()
 
 
 func _on_speed_up() -> void:
 	_current_speed = mini(_current_speed + 1, 4)
 	_apply_speed()
+	get_viewport().gui_release_focus()
 
 
 func _on_speed_down() -> void:
 	_current_speed = maxi(_current_speed - 1, 1)
 	_apply_speed()
+	get_viewport().gui_release_focus()
 
 
 func _apply_speed() -> void:
 	_speed_label.text = "%dx" % _current_speed
+	_collapsed_speed_label.text = "%dx" % _current_speed
 	Engine.time_scale = float(_current_speed)
 
 
@@ -302,8 +342,10 @@ func _on_auto_toggled(enabled: bool) -> void:
 	if _day_night:
 		if enabled:
 			_day_night.resume()
+			_collapsed_speed_label.text = "%dx" % _current_speed
 		else:
 			_day_night.pause()
+			_collapsed_speed_label.text = "⏸"
 	auto_advance_toggled.emit(enabled)
 
 

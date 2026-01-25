@@ -13,9 +13,9 @@
 - Ghibli-style toon shading + outlines
 - Day/night cycle (10 min, 4 periods)
 - Game speed controls (1-4 keys)
-- TOD clock widget (top-left, V to expand, pause/speed controls)
-- NPC info panel (top-right, N to expand, portrait with rounded corners)
-- Speech bubble above NPC (synced with info panel dialogue)
+- TOD clock widget (top-left, V to expand, shows speed/ratio in collapsed view)
+- NPC info panel (top-right, N to expand, starts collapsed, typewriter effect)
+- Speech bubble above NPC (status emoji, dark theme, synced dialogue)
 
 ## Controls
 
@@ -45,17 +45,19 @@
 | NPC info panel (fold/expand) | ✅ Done |
 | NPC portrait (rounded corners) | ✅ Done |
 | Pause functionality | ✅ Done |
-| Speech bubble (pop-in, typewriter) | ✅ Done |
+| Speech bubble (status emoji, dark) | ✅ Done |
+| Button focus release (all widgets) | ✅ Done |
 
 ## Speech Bubble Features
 
-- White bubble with black outline (Ghibli style)
+- Dark translucent style (matches other widgets)
+- Status-based emoji (😌 idle, 👀 alert, 😠 chasing, etc.)
 - Tail flush with bubble body
-- Min 3 lines height, max 5 lines
 - Pop-in animation (TRANS_BACK bounce)
 - Typewriter text effect
 - Subtle bob animation
 - Synced with NPC info panel dialogue
+- **TODO:** Message priority system (high-prio messages stay on screen)
 
 ## Pending Decisions
 

@@ -25,7 +25,7 @@ var social: NPCSocial = NPCSocial.new()
 var current_state: String = "idle"
 
 ## Current dialogue text (shared between bubble and info panel)
-var current_dialogue: String = "..."
+var current_dialogue: String = "Hmm..."
 
 ## Cached reference to player (if any)
 var _player: Node3D = null
@@ -208,7 +208,7 @@ func _on_sound_heard(source_position: Vector3, sound_type: String, loudness: flo
 # SOCIAL CALLBACKS
 # ═══════════════════════════════════════
 
-func _on_alert_received(from_npc: Node3D, alert_type: String, target_position: Vector3) -> void:
+func _on_alert_received(_from_npc: Node3D, alert_type: String, target_position: Vector3) -> void:
 	match alert_type:
 		"thief_spotted":
 			emotional_state.on_heard_warning()
@@ -342,17 +342,17 @@ func _update_state_indicator(state: String) -> void:
 			"returning":
 				dialogue = "Back to work..."
 			_:
-				dialogue = "..."  # Default for unknown states
+				dialogue = "Hmm..."  # Default for unknown states
 	
 	if dialogue.is_empty():
-		dialogue = "..."
+		dialogue = "Hmm..."
 	
 	# Store for info panel to use
 	current_dialogue = dialogue
 	
-	# Show on bubble
+	# Show on bubble with state for contextual emoji
 	if _state_indicator:
-		_state_indicator.show_dialogue(dialogue, 0.0)  # Always show, no auto-hide
+		_state_indicator.show_dialogue(dialogue, 0.0, state)
 
 
 func _update_vision_indicator(state: String) -> void:
@@ -514,7 +514,7 @@ func get_full_name() -> String:
 func get_dialogue(event: String) -> String:
 	if personality:
 		return personality.get_dialogue(event)
-	return "..."
+	return "Hmm..."
 
 func get_narrator_line() -> String:
 	if personality:

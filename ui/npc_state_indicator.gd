@@ -2,17 +2,19 @@ class_name NPCStateIndicator
 extends Node3D
 ## Speech bubble using SubViewport for clean 2D rendering in 3D.
 
-@export var height_offset: float = 2.8
+@export var height_offset: float = 3.3
 @export var bob_amount: float = 0.05
 @export var bob_speed: float = 2.0
 @export var max_bubble_width: float = 1200.0
-@export var max_chars_per_line: int = 30
-@export var min_lines: int = 3
+@export var max_chars_per_line: int = 28  # Slightly less to account for emoji
+@export var min_lines: int = 1  # Shrink to fit content
 @export var max_lines: int = 5
 @export var typewriter_speed: float = 0.03  # Seconds per character
 
 var _viewport: SubViewport
 var _panel: PanelContainer
+var _hbox: HBoxContainer
+var _emoji_label: Label
 var _label: Label
 var _sprite: Sprite3D
 var _tail: Polygon2D
@@ -59,33 +61,50 @@ func _setup_viewport() -> void:
 	_panel.position = Vector2(0, 0)
 	
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color.WHITE
-	style.border_color = Color.BLACK
+	style.bg_color = Color(0.06, 0.06, 0.08, 0.95)
+	style.border_color = Color(0.25, 0.25, 0.3, 0.9)
 	style.set_border_width_all(_s(2))
-	style.set_corner_radius_all(_s(8))
-	style.set_content_margin_all(_s(5))
+	style.set_corner_radius_all(_s(10))
+	# Reduced top/bottom padding, keep left/right
+	style.content_margin_left = _s(6)
+	style.content_margin_right = _s(10)
+	style.content_margin_top = _s(6)
+	style.content_margin_bottom = _s(6)
 	_panel.add_theme_stylebox_override("panel", style)
 	container.add_child(_panel)
 	
-	# Create label
+	# Load font once for all labels
+	var font = load("res://assets/fonts/JetBrainsMono.ttf")
+	
+	# HBox for icon + text
+	_hbox = HBoxContainer.new()
+	_hbox.add_theme_constant_override("separation", _s(4))
+	_panel.add_child(_hbox)
+	
+	# Emoji indicator
+	_emoji_label = Label.new()
+	_emoji_label.text = "💬"
+	_emoji_label.add_theme_font_size_override("font_size", _s(20))
+	_emoji_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_emoji_label.custom_minimum_size = Vector2(_s(28), 0)  # Fixed width to prevent layout shift
+	_hbox.add_child(_emoji_label)
+	
+	# Create text label
 	_label = Label.new()
 	_label.text = "Hello!"
-	var font = load("res://assets/fonts/JetBrainsMono.ttf")
 	if font:
 		_label.add_theme_font_override("font", font)
 	_label.add_theme_font_size_override("font_size", _s(18))
-	_label.add_theme_color_override("font_color", Color(0.1, 0.1, 0.1))
+	_label.add_theme_color_override("font_color", Color(0.95, 0.95, 0.9))
 	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	# Min height for 3 lines of text
-	var line_height = _s(18) + _s(4)  # font_size + line spacing
-	_label.custom_minimum_size = Vector2(_s(100), line_height * min_lines)
-	_panel.add_child(_label)
+	_label.custom_minimum_size = Vector2(_s(150), 0)  # Min width only, height fits content
+	_hbox.add_child(_label)
 	
 	# Create tail (triangle pointing down)
 	var tail = Polygon2D.new()
-	tail.color = Color.WHITE
+	tail.color = Color(0.06, 0.06, 0.08, 0.95)
 	tail.polygon = PackedVector2Array([
 		Vector2(-_s(15), 0),
 		Vector2(_s(15), 0),
@@ -100,8 +119,8 @@ func _setup_viewport() -> void:
 		Vector2(0, _s(20)),
 		Vector2(_s(15), 0)
 	])
-	tail_outline.width = _s(1)
-	tail_outline.default_color = Color.BLACK
+	tail_outline.width = _s(2)  # Match panel border width
+	tail_outline.default_color = Color(0.25, 0.25, 0.3, 0.9)
 	container.add_child(tail_outline)
 	
 	# Store tail refs for positioning
@@ -113,7 +132,7 @@ func _setup_sprite() -> void:
 	_sprite = Sprite3D.new()
 	_sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_sprite.no_depth_test = true
-	_sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
+	_sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	_sprite.pixel_size = 0.004
 	_sprite.position = Vector3(0, height_offset, 0)
 	add_child(_sprite)
@@ -132,7 +151,7 @@ func _process(delta: float) -> void:
 		_sprite.position.y = height_offset + bob
 
 
-func show_dialogue(text: String, _duration: float = 3.0) -> void:
+func show_dialogue(text: String, _duration: float = 3.0, state: String = "idle") -> void:
 	if text.is_empty():
 		hide_indicator()
 		return
@@ -143,8 +162,14 @@ func show_dialogue(text: String, _duration: float = 3.0) -> void:
 	if _popin_tween:
 		_popin_tween.kill()
 	
+	# Status-based emoji
+	_emoji_label.text = _get_status_emoji(state)
+	
+	# Strip quotes if present
+	var display_text = text.trim_prefix("\"").trim_suffix("\"")
+	
 	# Insert newlines after max_chars_per_line
-	_full_text = _wrap_text(text, max_chars_per_line)
+	_full_text = _wrap_text(display_text, max_chars_per_line)
 	_label.text = _full_text  # Set full text first for sizing
 	
 	# Resize viewport to fit text
@@ -216,3 +241,23 @@ func _resize_to_fit() -> void:
 
 func hide_indicator() -> void:
 	_sprite.visible = false
+
+
+func _get_status_emoji(state: String) -> String:
+	match state:
+		"idle", "calm", "returning":
+			return "😌"  # Relaxed/content
+		"alert":
+			return "👀"  # Alert/watching
+		"suspicious", "investigating":
+			return "🤨"  # Suspicious
+		"chasing", "angry":
+			return "😠"  # Angry/chasing
+		"searching":
+			return "❓"  # Searching/confused
+		"tired", "frustrated", "gave_up":
+			return "😮‍💨"  # Exhausted
+		"caught":
+			return "😤"  # Triumphant
+		_:
+			return "💭"  # Default thought

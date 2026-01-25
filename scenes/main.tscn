@@ -139,6 +139,7 @@ layout_mode = 3
 day_night_cycle_path = NodePath("../DayNightCycle")
 
 [node name="NPCInfoPanel" parent="." instance=ExtResource("9_npc_info")]
+layout_mode = 3
 
 [node name="NPCInfoManager" type="Node" parent="."]
 script = ExtResource("10_info_mgr")
