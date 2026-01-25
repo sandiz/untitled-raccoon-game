@@ -19,6 +19,18 @@ const DEFAULT_SETTINGS_PATH := "res://systems/default_tod_settings.tres"
 @export var world_environment: WorldEnvironment
 @export var directional_light: DirectionalLight3D
 
+@export_group("Skyboxes")
+@export var day_skybox: Texture2D
+@export var night_skybox: Texture2D
+
+# Fog colors per period
+const FOG_COLORS := {
+	"morning": Color(0.85, 0.75, 0.65),   # Warm peachy
+	"afternoon": Color(0.7, 0.78, 0.65),  # Soft green
+	"evening": Color(0.75, 0.55, 0.5),    # Warm coral
+	"night": Color(0.25, 0.3, 0.4),       # Cool blue
+}
+
 var _current_time: float = 0.0
 var _paused: bool = false
 var _current_period: TimePeriod = TimePeriod.MORNING
@@ -140,6 +152,8 @@ func _get_period_settings(period: TimePeriod) -> Dictionary:
 				"ambient_color": settings.morning_ambient_color,
 				"ambient_energy": settings.morning_ambient_energy,
 				"brightness": settings.morning_brightness,
+				"fog_color": FOG_COLORS.morning,
+				"use_night_sky": false,
 			}
 		TimePeriod.AFTERNOON:
 			return {
@@ -148,6 +162,8 @@ func _get_period_settings(period: TimePeriod) -> Dictionary:
 				"ambient_color": settings.afternoon_ambient_color,
 				"ambient_energy": settings.afternoon_ambient_energy,
 				"brightness": settings.afternoon_brightness,
+				"fog_color": FOG_COLORS.afternoon,
+				"use_night_sky": false,
 			}
 		TimePeriod.EVENING:
 			return {
@@ -156,6 +172,8 @@ func _get_period_settings(period: TimePeriod) -> Dictionary:
 				"ambient_color": settings.evening_ambient_color,
 				"ambient_energy": settings.evening_ambient_energy,
 				"brightness": settings.evening_brightness,
+				"fog_color": FOG_COLORS.evening,
+				"use_night_sky": false,
 			}
 		TimePeriod.NIGHT:
 			return {
@@ -164,6 +182,8 @@ func _get_period_settings(period: TimePeriod) -> Dictionary:
 				"ambient_color": settings.night_ambient_color,
 				"ambient_energy": settings.night_ambient_energy,
 				"brightness": settings.night_brightness,
+				"fog_color": FOG_COLORS.night,
+				"use_night_sky": true,
 			}
 	return {}
 
@@ -180,6 +200,8 @@ func _apply_blended_settings(from: Dictionary, to: Dictionary, blend: float) -> 
 		"ambient_color": from.ambient_color.lerp(to.ambient_color, blend),
 		"ambient_energy": lerpf(from.ambient_energy, to.ambient_energy, blend),
 		"brightness": lerpf(from.brightness, to.brightness, blend),
+		"fog_color": from.fog_color.lerp(to.fog_color, blend),
+		"use_night_sky": to.use_night_sky if blend > 0.5 else from.use_night_sky,
 	}
 	_apply_settings(blended)
 
@@ -197,18 +219,20 @@ func _apply_settings(s: Dictionary) -> void:
 		env.ambient_light_color = s.ambient_color
 		env.ambient_light_energy = s.ambient_energy
 		
-		# Darken the sky at night
-		if env.sky and env.sky.sky_material:
+		# Fog color
+		if s.has("fog_color"):
+			env.fog_light_color = s.fog_color
+		
+		# Switch skybox
+		if s.has("use_night_sky") and env.sky and env.sky.sky_material:
 			var sky_mat = env.sky.sky_material
 			if sky_mat is PanoramaSkyMaterial:
-				# Reduce sky brightness based on overall brightness
+				var target_sky = night_skybox if s.use_night_sky else day_skybox
+				if target_sky and sky_mat.panorama != target_sky:
+					sky_mat.panorama = target_sky
 				sky_mat.energy_multiplier = s.brightness
 	else:
 		push_warning("[DayNightCycle] No world_environment!")
-	
-	# Debug: print settings once per period change
-	if Engine.get_process_frames() % 120 == 0:
-		print("[TOD] light_energy=", s.light_intensity, " ambient_energy=", s.ambient_energy, " brightness=", s.brightness)
 	
 	# Set brightness on all shader materials
 	_update_shader_brightness(s.brightness)
