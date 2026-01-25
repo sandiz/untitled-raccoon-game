@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="TODSettings" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://systems/tod_settings.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+cycle_duration = 600.0
+transition_duration = 60.0
+morning_light_color = Color(1, 0.95, 0.85, 1)
+morning_light_intensity = 1.0
+morning_ambient_color = Color(0.9, 0.88, 0.82, 1)
+morning_ambient_energy = 0.3
+morning_brightness = 1.0
+afternoon_light_color = Color(1, 0.973, 0.906, 1)
+afternoon_light_intensity = 0.9
+afternoon_ambient_color = Color(0.95, 0.94, 0.9, 1)
+afternoon_ambient_energy = 0.4
+afternoon_brightness = 1.0
+evening_light_color = Color(1, 0.71, 0.655, 1)
+evening_light_intensity = 0.55
+evening_ambient_color = Color(0.9, 0.78, 0.75, 1)
+evening_ambient_energy = 0.3
+evening_brightness = 0.7
+night_light_color = Color(0.4, 0.5, 0.75, 1)
+night_light_intensity = 0.5
+night_ambient_color = Color(0.1, 0.15, 0.25, 1)
+night_ambient_energy = 0.35
+night_brightness = 0.5

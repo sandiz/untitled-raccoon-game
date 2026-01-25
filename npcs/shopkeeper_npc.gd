@@ -39,9 +39,6 @@ var _player: Node3D = null
 ## Floating state indicator above head
 var _state_indicator: NPCStateIndicator = null
 
-## Vision indicator on ground
-var _vision_indicator: VisionIndicator = null
-
 ## Timer for suspicious state timeout
 var _suspicious_timer: float = 0.0
 const SUSPICIOUS_TIMEOUT: float = 3.0  # Seconds before returning to idle
@@ -118,8 +115,6 @@ func _ready() -> void:
 	# Show initial idle dialogue
 	_update_state_indicator("idle")
 	
-	# Get vision indicator (added in scene)
-	_vision_indicator = get_node_or_null("VisionIndicator")
 
 func _exit_tree() -> void:
 	if not Engine.is_editor_hint():
@@ -343,7 +338,6 @@ func set_current_state(state: String) -> void:
 	if state != old_state:
 		_play_state_animation(state)
 		_update_state_indicator(state)
-		_update_vision_indicator(state)
 
 func _update_state_indicator(state: String) -> void:
 	# Get dialogue text from personality and store it
@@ -393,23 +387,6 @@ func _update_state_indicator(state: String) -> void:
 	if _data_store:
 		_data_store.update_npc_state(npc_id, state, dialogue)
 
-
-func _update_vision_indicator(state: String) -> void:
-	if not _vision_indicator:
-		return
-	
-	# Map current_state to vision indicator
-	match state:
-		"idle", "returning", "caught":
-			_vision_indicator.set_state_idle()
-		"alert", "investigating", "responding_to_alert", "searching":
-			_vision_indicator.set_state_suspicious()
-		"chasing", "helping":
-			_vision_indicator.set_state_chasing()
-		"frustrated":
-			_vision_indicator.set_state_suspicious()  # Still watching
-		_:
-			_vision_indicator.set_state_idle()
 
 # ═══════════════════════════════════════
 # BLACKBOARD HELPERS

@@ -1,8 +1,9 @@
 extends Camera3D
 
 @export var target_path: NodePath
-@export var distance: float = 12.0
-@export var height: float = 10.0
+@export var distance: float = 14.0
+@export var height: float = 12.0
+@export var look_height_offset: float = -2.0  # Look down more at target
 @export var smoothing: float = 5.0
 @export var zoom_speed: float = 0.5
 @export var min_zoom: float = 0.5
@@ -67,5 +68,5 @@ func _process(delta: float) -> void:
 	var target_pos = target.global_position + offset
 	global_position = global_position.lerp(target_pos, delta * smoothing)
 	
-	# Always look at target
-	look_at(target.global_position + Vector3(0, 1, 0), Vector3.UP)
+	# Always look at target (slightly below center to pitch camera down)
+	look_at(target.global_position + Vector3(0, look_height_offset, 0), Vector3.UP)

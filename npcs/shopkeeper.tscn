@@ -5,7 +5,6 @@
 [ext_resource type="Script" path="res://npcs/shopkeeper_npc.gd" id="3_script"]
 [ext_resource type="BehaviorTree" path="res://ai/trees/shopkeeper_ai.tres" id="4_bt"]
 [ext_resource type="Script" path="res://scripts/ghibli_shader_applier.gd" id="6_ghibli"]
-[ext_resource type="Script" path="res://npcs/vision_indicator.gd" id="7_vision"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 0.35
@@ -44,8 +43,3 @@ behavior_tree = ExtResource("4_bt")
 [node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
 path_desired_distance = 0.5
 target_desired_distance = 0.5
-
-[node name="VisionIndicator" type="Node3D" parent="."]
-script = ExtResource("7_vision")
-range_scale = 8.0
-cone_angle = 60.0

@@ -33,6 +33,8 @@ func _ready() -> void:
 
 
 func _apply_fonts() -> void:
+	if not label or not icon:
+		return
 	var font = load("res://assets/fonts/JetBrainsMono.ttf")
 	if font:
 		label.add_theme_font_override("font", font)
@@ -40,6 +42,10 @@ func _apply_fonts() -> void:
 
 
 func show_notification(period_name: String, _old_period: String = "") -> void:
+	# Guard against missing nodes
+	if not label or not icon:
+		return
+	
 	# Cancel any existing animation
 	if _tween:
 		_tween.kill()

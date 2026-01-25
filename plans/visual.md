@@ -30,7 +30,7 @@ Untitled Goose Game (mischief) + Ghibli (warmth) + Animal Crossing (pastel)
 ## Day/Night Cycle
 
 **Duration:** 10 min total (2.5 min each period)
-**Transitions:** 30 sec gradual blend
+**Transitions:** 60 sec gradual blend
 **Pauses:** Menus + dialogue
 
 | Time | Light Color | Intensity | Sky | Mood |
@@ -38,9 +38,32 @@ Untitled Goose Game (mischief) + Ghibli (warmth) + Animal Crossing (pastel)
 | Morning | #FFD700 gold | 0.7 | Pink→orange→blue | Fresh, misty |
 | Afternoon | #FFFEF0 white | 1.0 | Clear blue | Bright, alert |
 | Evening | #FF7F50 amber | 0.6 | Orange→purple | Golden hour |
-| Night | #6495ED blue | 0.25 | Navy, stars | Sneaky |
+| Night | #667FBF blue | 0.5 | Moonlit stars | Sneaky |
 
 **TOD Change Cue:** Subtle UI + soft chime + brief text ("Evening...")
+
+### Night Lighting - Golden Standard
+
+**TOD Settings (systems/default_tod_settings.tres):**
+```
+night_light_color = Color(0.4, 0.5, 0.75, 1)
+night_light_intensity = 0.5
+night_ambient_color = Color(0.1, 0.15, 0.25, 1)
+night_ambient_energy = 0.35
+night_brightness = 0.5
+```
+
+**Environment:**
+- background_mode = 2 (Sky)
+- Skybox: `assets/skybox/night_moonlit_sky.png`
+- Sky energy_multiplier = 0.5
+- Ambient: Blue tint (0.1, 0.15, 0.25) @ 0.35 energy
+
+**Key Points:**
+- Blue-tinted moonlight keeps characters visible
+- Skybox at 0.5 energy - visible but not overpowering
+- Shadows enabled for depth
+- Editor: Disable "Preview Sun/Environment" to see actual lighting
 
 ---
 

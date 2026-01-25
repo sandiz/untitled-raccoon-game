@@ -6,10 +6,10 @@ signal period_selected(period_index: int)
 const PERIOD_ICONS := ["🌅", "☀", "🌆", "🌙"]
 const PERIOD_NAMES := ["Morning", "Afternoon", "Evening", "Night"]
 const PERIOD_COLORS := [
-	Color("#FFD700"),  # Morning - Gold
-	Color("#FFFACD"),  # Afternoon - Lemon
-	Color("#FF7F50"),  # Evening - Coral
-	Color("#6495ED")   # Night - Blue
+	Color("#FFECD2"),  # Morning - Soft peach
+	Color("#FFF8E7"),  # Afternoon - Soft ivory
+	Color("#FFB5A7"),  # Evening - Soft coral pink
+	Color("#B8C5D6")   # Night - Soft periwinkle
 ]
 
 # Speed options
@@ -261,9 +261,9 @@ func _on_time_updated(normalized: float) -> void:
 	var period_progress = fmod(normalized * 4.0, 1.0)
 	_progress_bar.value = period_progress
 	
-	var game_time = get_node_or_null("/root/GameTime")
-	if game_time:
-		_time_label.text = game_time.game_time_string
+	# Update time label using DayNightCycle's time string
+	if _day_night:
+		_time_label.text = _day_night.get_game_time_string()
 
 
 func _update_display() -> void:
@@ -278,8 +278,13 @@ func _update_display() -> void:
 	var color = PERIOD_COLORS[period_index]
 	
 	_icon_label.text = PERIOD_ICONS[period_index]
+	_time_label.text = _day_night.get_game_time_string()
 	_time_label.add_theme_color_override("font_color", color)
 	_period_label.text = period_name
+	
+	# Update progress bar
+	var normalized = _day_night.get_normalized_time()
+	_progress_bar.value = fmod(normalized * 4.0, 1.0)
 	
 	var fill = _progress_bar.get_theme_stylebox("fill").duplicate() as StyleBoxFlat
 	fill.bg_color = color

@@ -73,8 +73,8 @@ func _setup_viewport() -> void:
 	_panel.position = Vector2(0, 0)
 	
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.06, 0.06, 0.08, 0.95)
-	style.border_color = Color(0.25, 0.25, 0.3, 0.9)
+	style.bg_color = Color(0.12, 0.13, 0.15, 1.0)  # Solid dark background
+	style.border_color = Color(0.3, 0.32, 0.35, 1.0)
 	# No bottom border - tail connects seamlessly
 	style.border_width_left = _s(2)
 	style.border_width_right = _s(2)
@@ -121,7 +121,7 @@ func _setup_viewport() -> void:
 	
 	# Create tail (triangle pointing down) - rendered BEHIND panel
 	var tail = Polygon2D.new()
-	tail.color = Color(0.06, 0.06, 0.08, 0.95)
+	tail.color = Color(0.12, 0.13, 0.15, 1.0)  # Match panel bg
 	tail.polygon = PackedVector2Array([
 		Vector2(-_s(15), 0),  # Start at panel bottom
 		Vector2(_s(15), 0),   # Start at panel bottom  
@@ -138,7 +138,7 @@ func _setup_viewport() -> void:
 		Vector2(_s(15), 0)
 	])
 	tail_outline.width = _s(2)
-	tail_outline.default_color = Color(0.25, 0.25, 0.3, 0.9)
+	tail_outline.default_color = Color(0.3, 0.32, 0.35, 1.0)  # Match panel border
 	tail_outline.z_index = -1  # Also behind panel
 	container.add_child(tail_outline)
 	

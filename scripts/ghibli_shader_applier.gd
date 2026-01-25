@@ -64,8 +64,21 @@ func _should_exclude(mesh_instance: MeshInstance3D) -> bool:
 		if exclude in name_lower:
 			return true
 	
+	# Also check parent names for things like Floor/MeshInstance3D
+	var parent = mesh_instance.get_parent()
+	if parent:
+		var parent_name_lower = parent.name.to_lower()
+		for exclude in _exclude_names:
+			if exclude in parent_name_lower:
+				return true
+	
+	# Skip meshes that already have a custom ShaderMaterial (don't override)
 	var mat = mesh_instance.get_surface_override_material(0)
-	if mat is ShaderMaterial and mat.shader == _toon_shader:
+	if mat is ShaderMaterial:
+		return true
+	
+	# Skip large plane meshes (floor/ground)
+	if mesh_instance.mesh is PlaneMesh:
 		return true
 	
 	return false
