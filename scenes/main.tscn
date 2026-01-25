@@ -1,17 +1,20 @@
-[gd_scene load_steps=29 format=3 uid="uid://bqd6y7xm7r8e2"]
+[gd_scene load_steps=49 format=3 uid="uid://bqd6y7xm7r8e2"]
 
 [ext_resource type="Texture2D" uid="uid://g1l2akl7bpva" path="res://assets/skybox/goose_sky.png" id="1_skybox"]
 [ext_resource type="PackedScene" uid="uid://dwehxim8vlojo" path="res://npcs/shopkeeper.tscn" id="2_shopkeeper"]
+[ext_resource type="Script" uid="uid://df0kwlb24vvi0" path="res://scripts/follow_camera.gd" id="3_camera"]
 [ext_resource type="PackedScene" uid="uid://cplayer001" path="res://player/player.tscn" id="5_player"]
 [ext_resource type="Script" uid="uid://bc68lbr02g646" path="res://systems/shop_item.gd" id="6_shop_item"]
 [ext_resource type="Script" uid="uid://bkd8iey6km0o5" path="res://systems/day_night_cycle.gd" id="7_daynight"]
+[ext_resource type="Shader" uid="uid://c7puk8iixr3n1" path="res://shaders/outline.gdshader" id="7_jkv2x"]
+[ext_resource type="Shader" uid="uid://cy4ttxsnnp0am" path="res://shaders/toon.gdshader" id="8_jbj1t"]
 [ext_resource type="PackedScene" path="res://ui/tod_notification.tscn" id="8_tod_ui"]
 [ext_resource type="PackedScene" path="res://ui/npc_info_panel.tscn" id="9_npc_info"]
 [ext_resource type="Script" uid="uid://cdm2e4irmkotk" path="res://ui/npc_info_manager.gd" id="10_info_mgr"]
 [ext_resource type="Script" uid="uid://br0u1dw415co" path="res://systems/game_speed_manager.gd" id="11_speed"]
 [ext_resource type="PackedScene" path="res://ui/tod_clock_widget.tscn" id="12_clock"]
-[ext_resource type="Script" uid="uid://df0kwlb24vvi0" path="res://scripts/follow_camera.gd" id="3_camera"]
-[ext_resource type="Script" path="res://scripts/ghibli_shader_applier.gd" id="13_ghibli"]
+[ext_resource type="Script" uid="uid://dserlv30qf4lu" path="res://scripts/ghibli_shader_applier.gd" id="13_ghibli"]
+[ext_resource type="Script" uid="uid://cgtfsvclwwo7l" path="res://scripts/post_process_outline.gd" id="14_outline"]
 
 [sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_1"]
 panorama = ExtResource("1_skybox")
@@ -48,6 +51,25 @@ roughness = 0.95
 material = SubResource("StandardMaterial3D_floor")
 size = Vector2(500, 500)
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_muem4"]
+render_priority = -1
+shader = ExtResource("7_jkv2x")
+shader_parameter/outline_color = Color(0.15, 0.1, 0.1, 1)
+shader_parameter/outline_width = 0.025
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_dp3eg"]
+render_priority = 0
+next_pass = SubResource("ShaderMaterial_muem4")
+shader = ExtResource("8_jbj1t")
+shader_parameter/base_color = Color(0.45, 0.65, 0.35, 1)
+shader_parameter/use_texture = false
+shader_parameter/shadow_strength = 0.25
+shader_parameter/shadow_threshold = 0.4
+shader_parameter/enable_rim = true
+shader_parameter/rim_color = Color(1, 0.95, 0.9, 1)
+shader_parameter/rim_power = 3.0
+shader_parameter/rim_intensity = 0.3
+
 [sub_resource type="BoxShape3D" id="BoxShape3D_1"]
 size = Vector3(500, 0.1, 500)
 
@@ -60,8 +82,65 @@ material = SubResource("mat_apple")
 radius = 0.12
 height = 0.24
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_0ld40"]
+render_priority = -1
+shader = ExtResource("7_jkv2x")
+shader_parameter/outline_color = Color(0.15, 0.1, 0.1, 1)
+shader_parameter/outline_width = 0.025
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_gqmmt"]
+render_priority = 0
+next_pass = SubResource("ShaderMaterial_0ld40")
+shader = ExtResource("8_jbj1t")
+shader_parameter/base_color = Color(0.9, 0.2, 0.15, 1)
+shader_parameter/use_texture = false
+shader_parameter/shadow_strength = 0.25
+shader_parameter/shadow_threshold = 0.4
+shader_parameter/enable_rim = true
+shader_parameter/rim_color = Color(1, 0.95, 0.9, 1)
+shader_parameter/rim_power = 3.0
+shader_parameter/rim_intensity = 0.3
+
 [sub_resource type="SphereShape3D" id="shape_apple"]
 radius = 0.12
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_yc10j"]
+render_priority = -1
+shader = ExtResource("7_jkv2x")
+shader_parameter/outline_color = Color(0.15, 0.1, 0.1, 1)
+shader_parameter/outline_width = 0.025
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_jscy8"]
+render_priority = 0
+next_pass = SubResource("ShaderMaterial_yc10j")
+shader = ExtResource("8_jbj1t")
+shader_parameter/base_color = Color(0.9, 0.2, 0.15, 1)
+shader_parameter/use_texture = false
+shader_parameter/shadow_strength = 0.25
+shader_parameter/shadow_threshold = 0.4
+shader_parameter/enable_rim = true
+shader_parameter/rim_color = Color(1, 0.95, 0.9, 1)
+shader_parameter/rim_power = 3.0
+shader_parameter/rim_intensity = 0.3
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_pm3ni"]
+render_priority = -1
+shader = ExtResource("7_jkv2x")
+shader_parameter/outline_color = Color(0.15, 0.1, 0.1, 1)
+shader_parameter/outline_width = 0.025
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_y6deb"]
+render_priority = 0
+next_pass = SubResource("ShaderMaterial_pm3ni")
+shader = ExtResource("8_jbj1t")
+shader_parameter/base_color = Color(0.9, 0.2, 0.15, 1)
+shader_parameter/use_texture = false
+shader_parameter/shadow_strength = 0.25
+shader_parameter/shadow_threshold = 0.4
+shader_parameter/enable_rim = true
+shader_parameter/rim_color = Color(1, 0.95, 0.9, 1)
+shader_parameter/rim_power = 3.0
+shader_parameter/rim_intensity = 0.3
 
 [sub_resource type="StandardMaterial3D" id="mat_bottle"]
 albedo_color = Color(0.2, 0.5, 0.8, 1)
@@ -74,9 +153,47 @@ top_radius = 0.06
 bottom_radius = 0.08
 height = 0.3
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_og1vs"]
+render_priority = -1
+shader = ExtResource("7_jkv2x")
+shader_parameter/outline_color = Color(0.15, 0.1, 0.1, 1)
+shader_parameter/outline_width = 0.025
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_2wyq8"]
+render_priority = 0
+next_pass = SubResource("ShaderMaterial_og1vs")
+shader = ExtResource("8_jbj1t")
+shader_parameter/base_color = Color(0.2, 0.5, 0.8, 1)
+shader_parameter/use_texture = false
+shader_parameter/shadow_strength = 0.25
+shader_parameter/shadow_threshold = 0.4
+shader_parameter/enable_rim = true
+shader_parameter/rim_color = Color(1, 0.95, 0.9, 1)
+shader_parameter/rim_power = 3.0
+shader_parameter/rim_intensity = 0.3
+
 [sub_resource type="CylinderShape3D" id="shape_bottle"]
 height = 0.3
 radius = 0.08
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vxglm"]
+render_priority = -1
+shader = ExtResource("7_jkv2x")
+shader_parameter/outline_color = Color(0.15, 0.1, 0.1, 1)
+shader_parameter/outline_width = 0.025
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_2f3dj"]
+render_priority = 0
+next_pass = SubResource("ShaderMaterial_vxglm")
+shader = ExtResource("8_jbj1t")
+shader_parameter/base_color = Color(0.2, 0.5, 0.8, 1)
+shader_parameter/use_texture = false
+shader_parameter/shadow_strength = 0.25
+shader_parameter/shadow_threshold = 0.4
+shader_parameter/enable_rim = true
+shader_parameter/rim_color = Color(1, 0.95, 0.9, 1)
+shader_parameter/rim_power = 3.0
+shader_parameter/rim_intensity = 0.3
 
 [sub_resource type="StandardMaterial3D" id="mat_box"]
 albedo_color = Color(0.6, 0.45, 0.25, 1)
@@ -86,13 +203,52 @@ roughness = 0.9
 material = SubResource("mat_box")
 size = Vector3(0.25, 0.25, 0.25)
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_yq6so"]
+render_priority = -1
+shader = ExtResource("7_jkv2x")
+shader_parameter/outline_color = Color(0.15, 0.1, 0.1, 1)
+shader_parameter/outline_width = 0.025
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_fv21b"]
+render_priority = 0
+next_pass = SubResource("ShaderMaterial_yq6so")
+shader = ExtResource("8_jbj1t")
+shader_parameter/base_color = Color(0.6, 0.45, 0.25, 1)
+shader_parameter/use_texture = false
+shader_parameter/shadow_strength = 0.25
+shader_parameter/shadow_threshold = 0.4
+shader_parameter/enable_rim = true
+shader_parameter/rim_color = Color(1, 0.95, 0.9, 1)
+shader_parameter/rim_power = 3.0
+shader_parameter/rim_intensity = 0.3
+
 [sub_resource type="BoxShape3D" id="shape_box"]
 size = Vector3(0.25, 0.25, 0.25)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_tel4y"]
+render_priority = -1
+shader = ExtResource("7_jkv2x")
+shader_parameter/outline_color = Color(0.15, 0.1, 0.1, 1)
+shader_parameter/outline_width = 0.025
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_qkpxi"]
+render_priority = 0
+next_pass = SubResource("ShaderMaterial_tel4y")
+shader = ExtResource("8_jbj1t")
+shader_parameter/base_color = Color(0.6, 0.45, 0.25, 1)
+shader_parameter/use_texture = false
+shader_parameter/shadow_strength = 0.25
+shader_parameter/shadow_threshold = 0.4
+shader_parameter/enable_rim = true
+shader_parameter/rim_color = Color(1, 0.95, 0.9, 1)
+shader_parameter/rim_power = 3.0
+shader_parameter/rim_intensity = 0.3
 
 [node name="Main" type="Node3D"]
 
 [node name="SceneShaderApplier" type="Node" parent="."]
 script = ExtResource("13_ghibli")
+scene_wide = true
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_1")
@@ -112,6 +268,11 @@ transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 
 script = ExtResource("3_camera")
 target_path = NodePath("../Shopkeeper")
 
+[node name="PostOutline" type="MeshInstance3D" parent="Camera3D"]
+script = ExtResource("14_outline")
+depth_threshold = 0.08
+normal_threshold = 0.15
+
 [node name="ReflectionProbe" type="ReflectionProbe" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 10, 0)
 update_mode = 1
@@ -128,6 +289,7 @@ navigation_mesh = SubResource("NavigationMesh_1")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Floor"]
 mesh = SubResource("PlaneMesh_1")
+surface_material_override/0 = SubResource("ShaderMaterial_dp3eg")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Floor"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0)
@@ -167,6 +329,7 @@ item_name = "Red Apple"
 
 [node name="Mesh" type="MeshInstance3D" parent="Items/Apple1"]
 mesh = SubResource("mesh_apple")
+surface_material_override/0 = SubResource("ShaderMaterial_gqmmt")
 
 [node name="Collision" type="CollisionShape3D" parent="Items/Apple1"]
 shape = SubResource("shape_apple")
@@ -180,6 +343,7 @@ item_name = "Red Apple"
 
 [node name="Mesh" type="MeshInstance3D" parent="Items/Apple2"]
 mesh = SubResource("mesh_apple")
+surface_material_override/0 = SubResource("ShaderMaterial_jscy8")
 
 [node name="Collision" type="CollisionShape3D" parent="Items/Apple2"]
 shape = SubResource("shape_apple")
@@ -193,6 +357,7 @@ item_name = "Red Apple"
 
 [node name="Mesh" type="MeshInstance3D" parent="Items/Apple3"]
 mesh = SubResource("mesh_apple")
+surface_material_override/0 = SubResource("ShaderMaterial_y6deb")
 
 [node name="Collision" type="CollisionShape3D" parent="Items/Apple3"]
 shape = SubResource("shape_apple")
@@ -207,6 +372,7 @@ value = 2
 
 [node name="Mesh" type="MeshInstance3D" parent="Items/Bottle1"]
 mesh = SubResource("mesh_bottle")
+surface_material_override/0 = SubResource("ShaderMaterial_2wyq8")
 
 [node name="Collision" type="CollisionShape3D" parent="Items/Bottle1"]
 shape = SubResource("shape_bottle")
@@ -221,6 +387,7 @@ value = 2
 
 [node name="Mesh" type="MeshInstance3D" parent="Items/Bottle2"]
 mesh = SubResource("mesh_bottle")
+surface_material_override/0 = SubResource("ShaderMaterial_2f3dj")
 
 [node name="Collision" type="CollisionShape3D" parent="Items/Bottle2"]
 shape = SubResource("shape_bottle")
@@ -235,6 +402,7 @@ value = 3
 
 [node name="Mesh" type="MeshInstance3D" parent="Items/Box1"]
 mesh = SubResource("mesh_box")
+surface_material_override/0 = SubResource("ShaderMaterial_fv21b")
 
 [node name="Collision" type="CollisionShape3D" parent="Items/Box1"]
 shape = SubResource("shape_box")
@@ -249,6 +417,7 @@ value = 3
 
 [node name="Mesh" type="MeshInstance3D" parent="Items/Box2"]
 mesh = SubResource("mesh_box")
+surface_material_override/0 = SubResource("ShaderMaterial_qkpxi")
 
 [node name="Collision" type="CollisionShape3D" parent="Items/Box2"]
 shape = SubResource("shape_box")

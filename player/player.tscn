@@ -93,7 +93,6 @@ unique_name_in_owner = true
 [node name="GhibliShader" type="Node" parent="Visuals/CharacterMesh"]
 script = ExtResource("4_ghibli")
 apply_toon_shader = true
-apply_outline = true
 outline_color = Color(0.15, 0.1, 0.1, 1)
 outline_width = 0.02
 enable_rim_light = true
