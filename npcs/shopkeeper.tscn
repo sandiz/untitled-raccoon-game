@@ -1,10 +1,9 @@
-[gd_scene load_steps=9 format=3 uid="uid://dk8shopkeeper01"]
+[gd_scene load_steps=8 format=3 uid="uid://dk8shopkeeper01"]
 
 [ext_resource type="PackedScene" uid="uid://c2c02gg7u1txo" path="res://npcs/shopkeeper.glb" id="1_mesh"]
 [ext_resource type="AnimationLibrary" uid="uid://b46m28yp3311e" path="res://player/Character_AnimationLibrary.tres" id="2_animlib"]
 [ext_resource type="Script" path="res://npcs/shopkeeper_npc.gd" id="3_script"]
 [ext_resource type="BehaviorTree" path="res://ai/trees/shopkeeper_ai.tres" id="4_bt"]
-[ext_resource type="Script" path="res://debug/npc_debug_visualizer.gd" id="5_debug"]
 [ext_resource type="Script" path="res://scripts/ghibli_shader_applier.gd" id="6_ghibli"]
 [ext_resource type="Script" path="res://npcs/vision_indicator.gd" id="7_vision"]
 
@@ -51,6 +50,3 @@ target_desired_distance = 0.5
 script = ExtResource("7_vision")
 range_scale = 8.0
 cone_angle = 60.0
-
-[node name="DebugVisualizer" type="Node3D" parent="."]
-script = ExtResource("5_debug")

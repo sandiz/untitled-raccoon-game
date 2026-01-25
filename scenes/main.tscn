@@ -1,9 +1,8 @@
-[gd_scene load_steps=30 format=3 uid="uid://bqd6y7xm7r8e2"]
+[gd_scene load_steps=29 format=3 uid="uid://bqd6y7xm7r8e2"]
 
 [ext_resource type="Texture2D" uid="uid://g1l2akl7bpva" path="res://assets/skybox/goose_sky.png" id="1_skybox"]
 [ext_resource type="PackedScene" uid="uid://dwehxim8vlojo" path="res://npcs/shopkeeper.tscn" id="2_shopkeeper"]
 [ext_resource type="Script" uid="uid://df0kwlb24vvi0" path="res://scripts/follow_camera.gd" id="3_camera"]
-[ext_resource type="PackedScene" path="res://debug/debug_overlay.tscn" id="4_debug"]
 [ext_resource type="PackedScene" uid="uid://cplayer001" path="res://player/player.tscn" id="5_player"]
 [ext_resource type="Script" uid="uid://bc68lbr02g646" path="res://systems/shop_item.gd" id="6_shop_item"]
 [ext_resource type="Script" uid="uid://bkd8iey6km0o5" path="res://systems/day_night_cycle.gd" id="7_daynight"]
@@ -131,8 +130,6 @@ shape = SubResource("BoxShape3D_1")
 
 [node name="Player" parent="." instance=ExtResource("5_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 5.164864)
-
-[node name="DebugOverlay" parent="." instance=ExtResource("4_debug")]
 
 [node name="TODNotification" parent="." instance=ExtResource("8_tod_ui")]
 layout_mode = 3

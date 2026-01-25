@@ -15,6 +15,7 @@
 - Game speed controls (1-4 keys)
 - TOD clock widget (top-left, V to expand, pause/speed controls)
 - NPC info panel (top-right, N to expand, portrait with rounded corners)
+- Speech bubble above NPC (synced with info panel dialogue)
 
 ## Controls
 
@@ -26,7 +27,6 @@
 | E/Q | Honk |
 | V | Toggle TOD widget expand |
 | N | Toggle NPC info panel expand |
-| F3 | Debug overlay |
 | 1-4 | Game speed |
 
 ## What's Working
@@ -37,7 +37,6 @@
 | Chase + catch | ✅ Done |
 | Perception (120° FOV, 8m) | ✅ Done |
 | Emotional state system | ✅ Done |
-| State icons (!, ?, !!) | ✅ Done |
 | Ghibli outline shader | ✅ Done |
 | Day/night cycle | ✅ Done |
 | Vision indicator (ground glow) | ✅ Done |
@@ -46,6 +45,17 @@
 | NPC info panel (fold/expand) | ✅ Done |
 | NPC portrait (rounded corners) | ✅ Done |
 | Pause functionality | ✅ Done |
+| Speech bubble (pop-in, typewriter) | ✅ Done |
+
+## Speech Bubble Features
+
+- White bubble with black outline (Ghibli style)
+- Tail flush with bubble body
+- Min 3 lines height, max 5 lines
+- Pop-in animation (TRANS_BACK bounce)
+- Typewriter text effect
+- Subtle bob animation
+- Synced with NPC info panel dialogue
 
 ## Pending Decisions
 

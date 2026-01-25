@@ -21,8 +21,11 @@ var social: NPCSocial = NPCSocial.new()
 # STATE
 # ═══════════════════════════════════════
 
-## Current behavior state (for debug display)
+## Current behavior state
 var current_state: String = "idle"
+
+## Current dialogue text (shared between bubble and info panel)
+var current_dialogue: String = "..."
 
 ## Cached reference to player (if any)
 var _player: Node3D = null
@@ -45,9 +48,6 @@ var _vision_indicator: VisionIndicator = null
 	set(value):
 		play_in_editor = value
 		_update_editor_animation()
-
-## Enable debug drawing (FOV cone, etc.)
-@export var debug_draw: bool = false
 
 # ═══════════════════════════════════════
 # LIFECYCLE
@@ -88,6 +88,9 @@ func _ready() -> void:
 	# Create floating state indicator
 	_state_indicator = NPCStateIndicator.new()
 	add_child(_state_indicator)
+	
+	# Show initial idle dialogue
+	_update_state_indicator("idle")
 	
 	# Get vision indicator (added in scene)
 	_vision_indicator = get_node_or_null("VisionIndicator")
@@ -168,23 +171,19 @@ func _on_target_spotted(target: Node3D, spot_type: String) -> void:
 	match spot_type:
 		"glimpse":
 			emotional_state.on_heard_noise()
-			_log_event("Hmm, what was that?")
 			_update_state_indicator("suspicious")
 		"noticed":
 			emotional_state.on_saw_target()
 			set_current_state("alert")
-			_log_event("I see something...")
 		"confirmed":
 			emotional_state.on_saw_target()
 			set_current_state("investigating")
-			_log_event("Hey! Who's there?")
 	
 	# Update blackboard for behavior tree
 	_update_blackboard("target", target)
 	_update_blackboard("target_last_position", target.global_position)
 
 func _on_target_lost(_target: Node3D) -> void:
-	_log_event("Lost sight of them...")
 	emotional_state.on_target_lost()
 	_update_blackboard("target", null)
 
@@ -197,10 +196,8 @@ func _on_sound_heard(source_position: Vector3, sound_type: String, loudness: flo
 		"honk":
 			emotional_state.on_heard_honk()
 			set_current_state("investigating")
-			_log_event("What was that noise?!")
 		"crash", "loud":
 			emotional_state.on_heard_noise()
-			_log_event("Heard something...")
 		_:
 			if loudness > 0.5:
 				emotional_state.on_heard_noise()
@@ -212,8 +209,6 @@ func _on_sound_heard(source_position: Vector3, sound_type: String, loudness: flo
 # ═══════════════════════════════════════
 
 func _on_alert_received(from_npc: Node3D, alert_type: String, target_position: Vector3) -> void:
-	_log_event("Got alert from %s: %s" % [from_npc.name, alert_type])
-	
 	match alert_type:
 		"thief_spotted":
 			emotional_state.on_heard_warning()
@@ -228,10 +223,10 @@ func _on_alert_received(from_npc: Node3D, alert_type: String, target_position: V
 			emotional_state.on_heard_noise()
 			_update_blackboard("investigate_position", target_position)
 		"all_clear":
-			_log_event("Never mind, false alarm.")
+			pass
 
-func _on_help_requested(from_npc: Node3D, _reason: String) -> void:
-	_log_event("%s needs help!" % from_npc.name)
+func _on_help_requested(_from_npc: Node3D, _reason: String) -> void:
+	pass
 
 # ═══════════════════════════════════════
 # EMOTIONAL STATE CALLBACKS
@@ -243,14 +238,13 @@ func _on_emotional_state_changed(_state_name: String, _old_val: float, _new_val:
 
 func _on_threshold_crossed(state_name: String, threshold: String, crossed_up: bool) -> void:
 	if state_name == "annoyance" and threshold == "high" and crossed_up:
-		_log_event("Getting really annoyed!")
 		# Consider calling for help
 		if emotional_state.will_call_help:
 			var target_pos = perception.get_last_known_position(perception.get_primary_target())
 			if target_pos != Vector3.ZERO:
 				social.call_for_help("thief", target_pos)
 	elif state_name == "exhaustion" and threshold == "high" and crossed_up:
-		_log_event("Too tired to chase...")
+		pass  # Could trigger exhaustion effects
 
 # ═══════════════════════════════════════
 # EVENT HANDLERS (called by BT or external systems)
@@ -265,12 +259,10 @@ func on_heard_noise(from_position: Vector3) -> void:
 func on_saw_player(_seen_player: Node3D) -> void:
 	emotional_state.on_saw_target()
 	set_current_state("alert")
-	_log_event("Spotted something!")
 
 func on_item_stolen(_item: Node3D) -> void:
 	emotional_state.on_saw_stealing()
 	set_current_state("chasing")
-	_log_event("Item stolen!")
 	
 	# Alert other NPCs
 	if _player:
@@ -285,7 +277,6 @@ func on_chase_ended(success: bool) -> void:
 	if success:
 		emotional_state.on_chase_success()
 		set_current_state("caught")
-		_log_event("Caught them!")
 		_try_play_animation(["default/Celebration", "default/Idle_Loop"])
 		social.signal_all_clear()
 		# After celebration, return to idle
@@ -295,7 +286,6 @@ func on_chase_ended(success: bool) -> void:
 	else:
 		emotional_state.on_chase_failed()
 		set_current_state("frustrated")
-		_log_event("Lost them...")
 		_try_play_animation(["default/Idle_Tired_Loop", "default/Idle_Loop"])
 
 func on_returned_home() -> void:
@@ -305,7 +295,6 @@ func on_returned_home() -> void:
 
 func on_item_recovered() -> void:
 	emotional_state.on_item_recovered()
-	_log_event("Got my item back!")
 	social.signal_all_clear()
 
 func set_current_state(state: String) -> void:
@@ -318,29 +307,52 @@ func set_current_state(state: String) -> void:
 		_update_vision_indicator(state)
 
 func _update_state_indicator(state: String) -> void:
-	if not _state_indicator:
-		return
+	# Get dialogue text from personality and store it
+	var dialogue: String = ""
+	if personality:
+		match state:
+			"idle":
+				dialogue = personality.get_dialogue("idle")
+				if dialogue.is_empty():
+					dialogue = "Hmph."
+			"alert":
+				dialogue = personality.get_dialogue("alert")
+				if dialogue.is_empty():
+					dialogue = "Hm?"
+			"investigating", "responding_to_alert":
+				dialogue = personality.get_dialogue("suspicious")
+				if dialogue.is_empty():
+					dialogue = "Who's there?"
+			"chasing", "helping":
+				dialogue = personality.get_dialogue("chasing")
+				if dialogue.is_empty():
+					dialogue = "GET BACK HERE!"
+			"searching":
+				dialogue = personality.get_dialogue("searching")
+				if dialogue.is_empty():
+					dialogue = "Where'd you go?"
+			"frustrated":
+				dialogue = personality.get_dialogue("gave_up")
+				if dialogue.is_empty():
+					dialogue = "*wheeze*"
+			"caught":
+				dialogue = personality.get_dialogue("caught")
+				if dialogue.is_empty():
+					dialogue = "Got you!"
+			"returning":
+				dialogue = "Back to work..."
+			_:
+				dialogue = "..."  # Default for unknown states
 	
-	# Map current_state to indicator state
-	match state:
-		"idle":
-			_state_indicator.hide_indicator()
-		"alert":
-			_state_indicator.show_state("alert")
-		"investigating", "responding_to_alert":
-			_state_indicator.show_state("suspicious")
-		"chasing", "helping":
-			_state_indicator.show_state("chasing")
-		"searching":
-			_state_indicator.show_state("searching")
-		"frustrated":
-			_state_indicator.show_state("tired")
-		"caught":
-			_state_indicator.show_state("caught")
-		"returning":
-			_state_indicator.show_state("calm")
-		_:
-			_state_indicator.hide_indicator()
+	if dialogue.is_empty():
+		dialogue = "..."
+	
+	# Store for info panel to use
+	current_dialogue = dialogue
+	
+	# Show on bubble
+	if _state_indicator:
+		_state_indicator.show_dialogue(dialogue, 0.0)  # Always show, no auto-hide
 
 
 func _update_vision_indicator(state: String) -> void:
@@ -449,15 +461,6 @@ func _update_editor_animation() -> void:
 	var anim: AnimationPlayer = get_node_or_null("AnimationPlayer")
 	if anim and play_in_editor:
 		anim.play("default/Idle")
-
-# ═══════════════════════════════════════
-# DEBUG / LOGGING
-# ═══════════════════════════════════════
-
-func _log_event(message: String) -> void:
-	var debug = get_tree().get_first_node_in_group("debug_overlay")
-	if debug and debug.has_method("log_event"):
-		debug.log_event("%s: %s" % [name, message])
 
 # ═══════════════════════════════════════
 # PUBLIC API (for BT conditions)

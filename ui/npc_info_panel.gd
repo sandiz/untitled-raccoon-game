@@ -328,7 +328,11 @@ func _update_narrator_text(personality, state: String) -> void:
 
 func _update_dialogue_text(personality, state: String) -> void:
 	var text = ""
-	if personality and personality.has_method("get_dialogue"):
+	
+	# Use NPC's stored current_dialogue if available (syncs with speech bubble)
+	if _current_npc and _current_npc.get("current_dialogue"):
+		text = _current_npc.current_dialogue
+	elif personality and personality.has_method("get_dialogue"):
 		text = personality.get_dialogue(state)
 	
 	if text.is_empty() or text == "...":
@@ -344,15 +348,36 @@ func _update_dialogue_text(personality, state: String) -> void:
 
 
 func _update_state_label(state: String) -> void:
-	var state_colors = {
-		"idle": Color(0.5, 0.8, 0.5),
-		"alert": Color(1.0, 0.9, 0.3),
-		"investigating": Color(1.0, 0.7, 0.2),
-		"chasing": Color(1.0, 0.3, 0.3),
-		"frustrated": Color(0.7, 0.5, 0.8)
+	# Match symbols from NPCStateIndicator - plain ASCII
+	var state_symbols = {
+		"idle": "~",
+		"calm": "~",
+		"alert": "!",
+		"suspicious": "?",
+		"investigating": "?",
+		"searching": "?",
+		"angry": "!!",
+		"chasing": "!!",
+		"tired": "zzz",
+		"frustrated": "zzz",
+		"caught": "!"
 	}
+	var state_colors = {
+		"idle": Color(0.3, 0.7, 0.3),
+		"calm": Color(0.3, 0.7, 0.3),
+		"alert": Color(0.9, 0.7, 0.0),
+		"suspicious": Color(0.2, 0.5, 0.9),
+		"investigating": Color(0.4, 0.6, 0.9),
+		"searching": Color(0.4, 0.6, 0.9),
+		"angry": Color(0.9, 0.2, 0.2),
+		"chasing": Color(0.9, 0.1, 0.1),
+		"tired": Color(0.5, 0.5, 0.5),
+		"frustrated": Color(0.5, 0.5, 0.5),
+		"caught": Color(0.9, 0.8, 0.2)
+	}
+	var symbol = state_symbols.get(state, "-")
 	var color = state_colors.get(state, text_color)
-	_state_label.text = "● " + state.capitalize()
+	_state_label.text = symbol + " " + state.capitalize()
 	_state_label.add_theme_color_override("font_color", color)
 
 
