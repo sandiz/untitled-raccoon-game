@@ -2,35 +2,40 @@
 
 ## Day/Night Cycle
 
-### What Works
+### What Works ✅
 - 4 TOD periods: Morning, Afternoon, Evening, Night
 - Night skybox (`assets/skybox/night_moonlit_sky.png`)
 - Moonlit blue lighting at night
 - TODSettings resource for tweakable values (`systems/default_tod_settings.tres`)
-- Floor color transitions with TOD
+- Floor color transitions with TOD (500x500 size)
 - Shadows on characters
-- TOD clock widget + notifications
+- Sleek TOD clock widget (expandable with period jump + speed controls)
+- Smooth transitions between periods (fixed 5am sunny → 6am dark bug)
 
-### Known Issue: Floor Warping
-**Problem:** Slight circular warping artifacts on floor during TOD transitions
+### Fixed: Floor Warping ✅
+**Problem:** Circular warping artifacts on floor during TOD transitions
 
-**What we tried:**
-- Custom shader with brightness uniform → warping
-- Unshaded shader → no warping but no shadows
-- Large floor (4000x4000) → severe warping
-- Smaller floor (100x100) → less warping but still present
-- StandardMaterial3D with scene lighting → still warps
-- Shadow bias adjustments → didn't help
-- Single shadow cascade mode → didn't help
+**Solution:** Enable debanding in Project Settings
+```
+[rendering]
+anti_aliasing/quality/use_debanding=true
+```
 
-**Root cause (suspected):**
-- Godot's lighting interpolation on flat surfaces causes precision artifacts
-- Not specific to our shader - happens with StandardMaterial3D too
+### Fixed: TOD Transition Bug ✅
+**Problem:** Scene became sunny at 5am then dark again at 6am
 
-**To research:**
-- How other games handle day/night on terrain (vertex colors, baked lighting, post-process color grading)
-- Godot terrain plugins approach
-- Tiled floor chunks instead of single large plane
+**Solution:** Removed duplicate blending at start-of-period (only blend at end-of-period now)
+
+## Gameplay
+
+### Player Control
+- Removed WASD movement from raccoon
+- Game is mouse-based: click to possess/influence NPCs
+- Raccoon is passive avatar with `possess(npc)` / `release()` API
+
+## UI
+- NPC speech bubbles with proper padding and outline
+- Sleek TOD clock widget (icon + time + expand button)
 
 ### Current Floor Setup
 - 100x100 PlaneMesh

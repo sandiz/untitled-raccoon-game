@@ -75,18 +75,18 @@ func _setup_viewport() -> void:
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0.12, 0.13, 0.15, 1.0)  # Solid dark background
 	style.border_color = Color(0.3, 0.32, 0.35, 1.0)
-	# No bottom border - tail connects seamlessly
+	# Border on all sides
 	style.border_width_left = _s(2)
 	style.border_width_right = _s(2)
 	style.border_width_top = _s(2)
-	style.border_width_bottom = 0
+	style.border_width_bottom = _s(2)
 	# Round all corners
 	style.set_corner_radius_all(_s(10))
-	# Reduced top/bottom padding, keep left/right
-	style.content_margin_left = _s(6)
-	style.content_margin_right = _s(10)
-	style.content_margin_top = _s(6)
-	style.content_margin_bottom = _s(6)
+	# Padding on all sides
+	style.content_margin_left = _s(14)
+	style.content_margin_right = _s(14)
+	style.content_margin_top = _s(12)
+	style.content_margin_bottom = _s(12)
 	_panel.add_theme_stylebox_override("panel", style)
 	container.add_child(_panel)
 	
@@ -119,15 +119,15 @@ func _setup_viewport() -> void:
 	_label.custom_minimum_size = Vector2(_s(150), 0)  # Min width only, height fits content
 	_hbox.add_child(_label)
 	
-	# Create tail (triangle pointing down) - rendered BEHIND panel
+	# Create tail (triangle pointing down) - rendered ON TOP to cover bottom border
 	var tail = Polygon2D.new()
 	tail.color = Color(0.12, 0.13, 0.15, 1.0)  # Match panel bg
 	tail.polygon = PackedVector2Array([
-		Vector2(-_s(15), 0),  # Start at panel bottom
-		Vector2(_s(15), 0),   # Start at panel bottom  
+		Vector2(-_s(15), -_s(2)),  # Start slightly above to cover border
+		Vector2(_s(15), -_s(2)),   # Start slightly above to cover border
 		Vector2(0, _s(20))    # Point down
 	])
-	tail.z_index = -1  # Render behind panel
+	tail.z_index = 1  # Render on top to cover bottom border
 	container.add_child(tail)
 	
 	# Tail outline (only the V shape, not the top)
@@ -139,7 +139,7 @@ func _setup_viewport() -> void:
 	])
 	tail_outline.width = _s(2)
 	tail_outline.default_color = Color(0.3, 0.32, 0.35, 1.0)  # Match panel border
-	tail_outline.z_index = -1  # Also behind panel
+	tail_outline.z_index = 2  # On top of tail fill
 	container.add_child(tail_outline)
 	
 	# Store tail refs for positioning

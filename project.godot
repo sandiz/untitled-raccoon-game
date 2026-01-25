@@ -90,6 +90,10 @@ project_id="16ba072e-b86a-41ba-b607-ba75d7244946"
 [navigation]
 
 3d/debug_navigation_enabled=false
+
+[rendering]
+
+anti_aliasing/quality/use_debanding=true
 3d/debug_navigation_geometry_face_disabled=true
 3d/debug_navigation_geometry_edge_disabled=true
 3d/debug_navigation_agent_path_visibility=0

@@ -116,24 +116,18 @@ func _update_lighting() -> void:
 		_current_period = new_period
 		time_of_day_changed.emit(new_name, old_name)
 	
-	# Calculate blend factor for transitions
-	var blend = 1.0
-	if time_in_period < settings.transition_duration:
-		blend = time_in_period / settings.transition_duration
-	elif time_in_period > period_duration - settings.transition_duration:
-		blend = 1.0 - (time_in_period - (period_duration - settings.transition_duration)) / settings.transition_duration
-	
+	# Only blend at END of each period (approaching next period)
+	# This prevents the "reset" bug where start-of-period blending undoes end-of-period blending
 	var current = _get_period_settings(_current_period)
 	var next_period = ((_current_period as int) + 1) % 4 as TimePeriod
-	var prev_period = ((_current_period as int) + 3) % 4 as TimePeriod
 	
-	if time_in_period < settings.transition_duration:
-		var prev = _get_period_settings(prev_period)
-		_apply_blended_settings(prev, current, blend)
-	elif time_in_period > period_duration - settings.transition_duration:
+	if time_in_period > period_duration - settings.transition_duration:
+		# Approaching next period - blend from current to next
+		var blend = (time_in_period - (period_duration - settings.transition_duration)) / settings.transition_duration
 		var next = _get_period_settings(next_period)
-		_apply_blended_settings(current, next, 1.0 - blend)
+		_apply_blended_settings(current, next, blend)
 	else:
+		# Not in transition - apply current period settings
 		_apply_period_settings(_current_period)
 
 

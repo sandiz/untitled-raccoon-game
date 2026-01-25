@@ -47,7 +47,7 @@ roughness = 0.95
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_1"]
 material = SubResource("StandardMaterial3D_floor")
-size = Vector2(100, 100)
+size = Vector2(500, 500)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_1"]
 size = Vector3(500, 0.1, 500)
