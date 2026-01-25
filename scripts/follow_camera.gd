@@ -13,6 +13,7 @@ extends Camera3D
 @export var rotate_smoothing: float = 8.0
 
 var target: Node3D
+var _default_target: Node3D  # The raccoon/player
 var current_zoom: float = 1.0
 var target_zoom: float = 1.0
 var current_angle: float = 0.0
@@ -22,6 +23,46 @@ var is_dragging: bool = false
 func _ready() -> void:
 	if target_path:
 		target = get_node_or_null(target_path)
+	_default_target = target
+	
+	# Connect to NPC selection changes
+	call_deferred("_connect_to_data_store")
+
+
+func _connect_to_data_store() -> void:
+	var data_store = NPCDataStore.get_instance()
+	if data_store:
+		data_store.selection_changed.connect(_on_selection_changed)
+
+
+func _on_selection_changed(selected_ids: Array) -> void:
+	var new_target: Node3D = null
+	
+	if selected_ids.is_empty():
+		# No NPC selected - follow raccoon/player
+		new_target = _default_target
+		print("[Camera] Following player")
+	else:
+		# Follow selected NPC
+		var data_store = NPCDataStore.get_instance()
+		new_target = data_store.get_npc_node(selected_ids[0])
+		if new_target:
+			print("[Camera] Following NPC: ", selected_ids[0])
+	
+	if new_target and new_target != target:
+		# Calculate angle to maintain camera position relative to new target
+		var cam_pos = global_position
+		var new_target_pos = new_target.global_position
+		var dir_to_cam = cam_pos - new_target_pos
+		dir_to_cam.y = 0  # Ignore height for yaw calculation
+		
+		if dir_to_cam.length() > 0.1:
+			# Calculate the angle from target to camera
+			var new_angle = atan2(dir_to_cam.x, dir_to_cam.z)
+			target_angle = new_angle
+			current_angle = new_angle
+		
+		target = new_target
 
 func _input(event: InputEvent) -> void:
 	# Mouse scroll wheel zoom

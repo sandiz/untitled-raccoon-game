@@ -2,7 +2,7 @@ class_name SelectionRing
 extends Node3D
 ## Visual ring indicator for selected NPCs.
 
-@export var ring_color: Color = Color(0.4, 0.9, 1.0, 0.8)
+@export var ring_color: Color = Color(1.0, 1.0, 1.0, 0.9)
 @export var ring_size: float = 2.0
 @export var height_offset: float = 0.05
 

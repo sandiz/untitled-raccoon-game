@@ -202,7 +202,7 @@ night_skybox = ExtResource("1_nightsky")
 transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 3, 10, 10)
 far = 60.0
 script = ExtResource("3_camera")
-target_path = NodePath("../Shopkeeper")
+target_path = NodePath("../Player")
 
 [node name="ReflectionProbe" type="ReflectionProbe" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 10, 0)

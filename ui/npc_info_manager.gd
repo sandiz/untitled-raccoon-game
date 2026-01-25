@@ -93,17 +93,10 @@ func _find_npc_parent(node: Node) -> Node3D:
 	return null
 
 
-func _on_selection_changed(selected_ids: Array) -> void:
-	if not _info_panel:
-		return
-	
-	if selected_ids.is_empty():
-		_info_panel.hide_panel()
-	else:
-		# Show panel for first selected NPC (TODO: stack panels for multiple)
-		var npc_node = _data_store.get_npc_node(selected_ids[0])
-		if npc_node:
-			_info_panel.show_npc(npc_node)
+func _on_selection_changed(_selected_ids: Array) -> void:
+	# NPCInfoPanel handles its own visibility and content switching
+	# (raccoon info when empty, NPC info when selected)
+	pass
 
 
 func _auto_select_closest_npc() -> void:

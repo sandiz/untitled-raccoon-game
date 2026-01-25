@@ -21,6 +21,8 @@ var _editor_scale: float = 1.0
 var _tween: Tween
 var _queue: Array[Dictionary] = []
 var _is_showing: bool = false
+var _load_happened: bool = false  # Skip startup TOD if save was loaded
+var _suppress_external_tod: bool = true  # Start suppressed, enable after startup/load
 
 # Preset notification types
 const PRESETS := {
@@ -71,34 +73,36 @@ func _get_editor_scale() -> float:
 
 
 func _build_ui() -> void:
-	# Panel container with dark style - aligned to right
+	# Panel container with dark style - top-right, below clock widget
 	_panel = PanelContainer.new()
 	_panel.add_theme_stylebox_override("panel", _create_panel_style())
-	_panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_panel.grow_vertical = Control.GROW_DIRECTION_END
+	_panel.position.x = -_s(10)  # Right margin (matches clock widget)
+	_panel.position.y = _s(70)   # Below clock widget with space
 	add_child(_panel)
 	
 	# Content row
 	var hbox = HBoxContainer.new()
-	hbox.add_theme_constant_override("separation", _s(10))
+	hbox.add_theme_constant_override("separation", _s(8))
 	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	_panel.add_child(hbox)
 	
 	# Icon - use same font size as text for alignment
 	_icon_label = Label.new()
 	_icon_label.add_theme_font_override("font", _font)
-	_icon_label.add_theme_font_size_override("font_size", _s(18))
+	_icon_label.add_theme_font_size_override("font_size", _s(14))
 	_icon_label.add_theme_color_override("font_color", TEXT_COLOR)
 	_icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_icon_label.custom_minimum_size = Vector2(_s(24), _s(24))
+	_icon_label.custom_minimum_size = Vector2(_s(18), _s(18))
 	hbox.add_child(_icon_label)
 	
 	# Text
 	_text_label = Label.new()
 	_text_label.add_theme_font_override("font", _font)
-	_text_label.add_theme_font_size_override("font_size", _s(18))
+	_text_label.add_theme_font_size_override("font_size", _s(14))
 	_text_label.add_theme_color_override("font_color", TEXT_COLOR)
 	_text_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	hbox.add_child(_text_label)
@@ -109,10 +113,10 @@ func _create_panel_style() -> StyleBoxFlat:
 	style.bg_color = PANEL_BG_COLOR
 	style.set_border_width_all(2)
 	style.border_color = PANEL_BORDER_COLOR
-	style.set_corner_radius_all(_s(6))
-	style.set_content_margin_all(_s(10))
-	style.content_margin_left = _s(14)
-	style.content_margin_right = _s(14)
+	style.set_corner_radius_all(_s(5))
+	style.set_content_margin_all(_s(8))
+	style.content_margin_left = _s(10)
+	style.content_margin_right = _s(10)
 	return style
 
 
@@ -126,10 +130,21 @@ func _connect_systems() -> void:
 func _show_startup_tod() -> void:
 	await get_tree().create_timer(0.5).timeout
 	
+	# Skip if a save was loaded (it will show its own notification)
+	if _load_happened:
+		_suppress_external_tod = false  # Allow normal TOD notifications now
+		return
+	
+	# Show startup TOD directly (bypass suppress check)
 	var day_night = get_tree().get_first_node_in_group("day_night_cycle") as DayNightCycle
 	if day_night:
 		var period = day_night.get_current_period()
-		show_notification(period, "")
+		var preset_key = period.to_lower()
+		if PRESETS.has(preset_key):
+			var data = PRESETS[preset_key]
+			_show(data.get("text", period), data["icon"], data["color"], data.get("duration", 3.0))
+	
+	_suppress_external_tod = false  # Allow normal TOD notifications now
 
 
 func _on_save_completed(_slot: String) -> void:
@@ -137,7 +152,23 @@ func _on_save_completed(_slot: String) -> void:
 
 
 func _on_load_completed(_slot: String) -> void:
+	_load_happened = true
+	_suppress_external_tod = true  # Ignore DayNightCycle notifications briefly
 	notify("", "load")
+	
+	# Queue the current TOD to show after "Game Loaded"
+	call_deferred("_queue_current_tod")
+
+
+func _queue_current_tod() -> void:
+	var day_night = get_tree().get_first_node_in_group("day_night_cycle") as DayNightCycle
+	if day_night:
+		var period = day_night.get_current_period()
+		var preset_key = period.to_lower()
+		if PRESETS.has(preset_key):
+			var data = PRESETS[preset_key]
+			_show(data.get("text", period), data["icon"], data["color"], data.get("duration", 3.0))
+	_suppress_external_tod = false  # Allow external TOD notifications again
 
 
 ## Show a notification with preset type
@@ -150,6 +181,10 @@ func notify(text: String, preset: String = "info") -> void:
 
 ## Backwards compatible - called by DayNightCycle signal
 func show_notification(period_name: String, _old_period: String = "") -> void:
+	# Skip if we're handling load (we queue our own TOD)
+	if _suppress_external_tod:
+		return
+	
 	var preset_key = period_name.to_lower()
 	if PRESETS.has(preset_key):
 		var data = PRESETS[preset_key]
@@ -190,16 +225,17 @@ func _display(notif: Dictionary) -> void:
 	
 	var duration: float = notif.get("duration", 2.0)
 	
-	# Animate - slide up from bottom
-	_panel.position.y = _s(30)
+	# Animate - drop from above (relative to resting position)
+	var resting_y = _s(70)  # Below clock widget with space
+	_panel.position.y = _s(20)  # Start near clock level
 	_tween = create_tween()
 	_tween.set_ease(Tween.EASE_OUT)
 	_tween.set_trans(Tween.TRANS_BACK)
 	
-	# Slide up + fade in
+	# Drop down + fade in
 	_tween.set_parallel(true)
 	_tween.tween_property(_panel, "modulate:a", 1.0, FADE_DURATION)
-	_tween.tween_property(_panel, "position:y", 0.0, FADE_DURATION)
+	_tween.tween_property(_panel, "position:y", resting_y, FADE_DURATION)
 	
 	_tween.set_parallel(false)
 	

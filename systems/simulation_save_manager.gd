@@ -17,7 +17,7 @@ const SAVE_VERSION := 1
 @export var autosave_interval: float = 30.0
 
 ## Auto-load last save on start
-@export var auto_resume: bool = false
+@export var auto_resume: bool = true
 
 var _autosave_timer: float = 0.0
 var _is_saving: bool = false

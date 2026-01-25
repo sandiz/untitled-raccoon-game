@@ -147,10 +147,12 @@ func _physics_process(delta: float) -> void:
 		if _suspicious_timer >= SUSPICIOUS_TIMEOUT:
 			set_current_state("idle")
 	
-	# Apply gravity
+	# Apply gravity and handle movement
 	if not is_on_floor():
 		velocity.y -= 9.8 * delta
-		move_and_slide()
+	else:
+		velocity = Vector3.ZERO  # Reset all velocity when grounded to prevent sliding
+	move_and_slide()
 
 # ═══════════════════════════════════════
 # PERCEPTION UPDATES

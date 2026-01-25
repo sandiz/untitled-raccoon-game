@@ -1,9 +1,11 @@
 class_name NPCInfoPanel
 extends BaseWidget
-## Wildlife documentary style info panel for NPCs - extends BaseWidget.
+## Wildlife documentary style info panel - extends BaseWidget.
+## Shows info for selected NPC or raccoon (when no NPC selected).
 ## Reads NPC state from NPCDataStore for sync with speech bubble.
 
 var _current_npc: Node3D = null
+var _showing_raccoon: bool = false
 var _tween: Tween
 var _last_state: String = ""
 var _data_store: NPCDataStore
@@ -33,6 +35,13 @@ var _exhaustion_bar: ProgressBar
 var _suspicion_bar: ProgressBar
 
 
+# Raccoon info (hardcoded for now)
+const RACCOON_NAME: String = "Rascal"
+const RACCOON_TITLE: String = "The Sneaky Raccoon"
+const RACCOON_NARRATOR: String = "A curious trash panda surveys the scene..."
+const RACCOON_DIALOGUE: String = "*sniffs around mischievously*"
+
+
 func _ready() -> void:
 	_expand_keybind = KEY_N
 	_expanded = false  # Start collapsed
@@ -43,6 +52,10 @@ func _ready() -> void:
 	# Connect to data store
 	_data_store = NPCDataStore.get_instance()
 	_data_store.state_changed.connect(_on_npc_state_changed)
+	_data_store.selection_changed.connect(_on_selection_changed)
+	
+	# Show raccoon info initially (no NPC selected)
+	call_deferred("_show_raccoon")
 
 
 func _input(event: InputEvent) -> void:
@@ -231,11 +244,16 @@ func _on_npc_state_changed(npc_id: String, data: Dictionary) -> void:
 
 
 func show_npc(npc: Node3D) -> void:
-	if _current_npc == npc and visible:
+	if _current_npc == npc and visible and not _showing_raccoon:
 		return
 	
+	_showing_raccoon = false
 	_current_npc = npc
 	_last_state = ""
+	
+	# Re-show stat bars for NPC
+	if _stats_box:
+		_stats_box.visible = true
 	
 	if not npc:
 		hide_panel()
@@ -283,6 +301,7 @@ func show_npc(npc: Node3D) -> void:
 
 func hide_panel() -> void:
 	_current_npc = null
+	_showing_raccoon = false
 	
 	if _tween:
 		_tween.kill()
@@ -291,6 +310,57 @@ func hide_panel() -> void:
 	_tween.set_trans(Tween.TRANS_QUAD)
 	_tween.tween_property(self, "modulate:a", 0.0, 0.15)
 	_tween.tween_callback(func(): visible = false)
+
+
+func _on_selection_changed(selected_ids: Array) -> void:
+	if selected_ids.is_empty():
+		# No NPC selected - show raccoon info
+		_show_raccoon()
+	else:
+		# NPC selected - show that NPC's info
+		var npc_node = _data_store.get_npc_node(selected_ids[0])
+		if npc_node:
+			show_npc(npc_node)
+
+
+func _show_raccoon() -> void:
+	_showing_raccoon = true
+	_current_npc = null
+	_last_state = ""
+	
+	# Update display for raccoon
+	_name_label.text = RACCOON_NAME
+	_title_label.text = RACCOON_TITLE
+	_portrait_container.visible = false  # No portrait for raccoon (yet)
+	
+	# State - raccoon is always "exploring"
+	_state_label.text = "🦝 Exploring"
+	_state_label.add_theme_color_override("font_color", Color(0.4, 0.8, 0.4))
+	
+	# Narrator and dialogue
+	_narrator_full_text = RACCOON_NARRATOR
+	if _narrator_tween:
+		_narrator_tween.kill()
+	_narrator_label.text = ""
+	_narrator_tween = create_tween()
+	for i in range(RACCOON_NARRATOR.length()):
+		_narrator_tween.tween_callback(_add_narrator_char.bind(i))
+		_narrator_tween.tween_interval(TYPEWRITER_SPEED)
+	
+	_show_dialogue_text(RACCOON_DIALOGUE)
+	
+	# Hide stat bars for raccoon (or show different ones later)
+	if _stats_box:
+		_stats_box.visible = false
+	
+	# Show the panel
+	visible = true
+	if _tween:
+		_tween.kill()
+	_tween = create_tween()
+	_tween.set_ease(Tween.EASE_OUT)
+	_tween.set_trans(Tween.TRANS_QUAD)
+	_tween.tween_property(self, "modulate:a", 1.0, 0.2)
 
 
 func _update_narrator_text(personality, state: String) -> void:
