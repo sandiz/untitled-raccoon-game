@@ -1,0 +1,56 @@
+[gd_scene load_steps=9 format=3 uid="uid://dk8shopkeeper01"]
+
+[ext_resource type="PackedScene" uid="uid://c2c02gg7u1txo" path="res://npcs/shopkeeper.glb" id="1_mesh"]
+[ext_resource type="AnimationLibrary" uid="uid://b46m28yp3311e" path="res://player/Character_AnimationLibrary.tres" id="2_animlib"]
+[ext_resource type="Script" path="res://npcs/shopkeeper_npc.gd" id="3_script"]
+[ext_resource type="BehaviorTree" path="res://ai/trees/shopkeeper_ai.tres" id="4_bt"]
+[ext_resource type="Script" path="res://debug/npc_debug_visualizer.gd" id="5_debug"]
+[ext_resource type="Script" path="res://scripts/ghibli_shader_applier.gd" id="6_ghibli"]
+[ext_resource type="Script" path="res://npcs/vision_indicator.gd" id="7_vision"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
+radius = 0.35
+height = 1.8
+
+[sub_resource type="NavigationMesh" id="NavigationMesh_1"]
+
+[node name="Shopkeeper" type="CharacterBody3D"]
+script = ExtResource("3_script")
+collision_layer = 2
+collision_mask = 1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_1")
+
+[node name="CharacterMesh" parent="." instance=ExtResource("1_mesh")]
+unique_name_in_owner = true
+
+[node name="GhibliShader" type="Node" parent="CharacterMesh"]
+script = ExtResource("6_ghibli")
+apply_toon_shader = true
+apply_outline = true
+outline_color = Color(0.15, 0.1, 0.1, 1)
+outline_width = 0.025
+enable_rim_light = true
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+root_node = NodePath("../CharacterMesh")
+libraries = {
+&"default": ExtResource("2_animlib")
+}
+
+[node name="BTPlayer" type="BTPlayer" parent="."]
+behavior_tree = ExtResource("4_bt")
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+path_desired_distance = 0.5
+target_desired_distance = 0.5
+
+[node name="VisionIndicator" type="Node3D" parent="."]
+script = ExtResource("7_vision")
+range_scale = 8.0
+cone_angle = 60.0
+
+[node name="DebugVisualizer" type="Node3D" parent="."]
+script = ExtResource("5_debug")

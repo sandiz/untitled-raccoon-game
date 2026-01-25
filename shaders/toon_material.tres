@@ -1,0 +1,16 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+[ext_resource type="Shader" path="res://shaders/toon.gdshader" id="1_shader"]
+
+[resource]
+shader = ExtResource("1_shader")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/use_texture = false
+shader_parameter/shadow_threshold = 0.3
+shader_parameter/light_threshold = 0.7
+shader_parameter/shadow_color = Color(0.6, 0.5, 0.6, 1)
+shader_parameter/highlight_color = Color(1, 1, 0.95, 1)
+shader_parameter/enable_rim = true
+shader_parameter/rim_color = Color(1, 0.95, 0.9, 1)
+shader_parameter/rim_power = 3.0
+shader_parameter/rim_intensity = 0.3

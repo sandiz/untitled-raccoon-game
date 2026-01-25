@@ -1,0 +1,19 @@
+# Godot
+.godot/
+.import/
+export.cfg
+export_presets.cfg
+
+# Addons (managed externally)
+addons/
+
+# Moonlake
+.moonlake/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

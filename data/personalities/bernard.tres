@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="NPCPersonality" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://systems/npc_personality.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/portraits/shopkeeper_portrait.png" id="2_portrait"]
+
+[resource]
+script = ExtResource("1_script")
+npc_id = "bernard"
+display_name = "Bernard"
+title = "The Grumpy Shopkeeper"
+portrait = ExtResource("2_portrait")
+personality = "grumpy"
+alertness_modifier = 1.0
+annoyance_modifier = 1.3
+exhaustion_modifier = 0.8
+suspicion_modifier = 1.1
+dialogue_idle = Array[String](["Another quiet day...", "These shelves won't organize themselves.", "Hmph."])
+dialogue_spotted = Array[String](["Hm? That furry menace again?", "What was—", "I see you."])
+dialogue_suspicious = Array[String](["Wait a minute...", "Something's not right here.", "I've got my eye on you."])
+dialogue_chasing = Array[String](["GET BACK HERE!", "MY CABBAGES! I mean— APPLES!", "STOP RIGHT THERE!"])
+dialogue_lost = Array[String](["Where'd that little thief go?!", "Blast it all...", "Come out, come out..."])
+dialogue_caught = Array[String](["HA! Got you!", "Not so clever now, are we?", "That'll teach you!"])
+dialogue_gave_up = Array[String](["*wheeze* Forget it...", "Too old for this nonsense.", "You win this round..."])
+dialogue_item_stolen = Array[String](["MY APPLES!", "That's MINE, you thief!", "How DARE you!"])
+dialogue_item_recovered = Array[String](["Back where it belongs.", "Hmph. Finally.", "Don't touch my things."])
+narrator_idle = Array[String](["The shopkeeper tends to his wares. All is calm.", "Bernard surveys his domain. Ever vigilant.", "A quiet moment. Perhaps too quiet."])
+narrator_suspicious = Array[String](["Something has caught his attention.", "His eyes narrow. He senses mischief afoot.", "Years of experience have honed his instincts."])
+narrator_chasing = Array[String](["The chase is ON. Bernard means business.", "Remarkable speed for a man of his age.", "Decades of chasing shoplifters pay off."])
+narrator_searching = Array[String](["He's lost sight of his quarry.", "Confusion and frustration set in.", "The hunter becomes the hunted. Wait, no—"])
+narrator_tired = Array[String](["Exhaustion takes hold. Bernard wheezes.", "Age catches up. The hunt is abandoned.", "Even the mightiest shopkeeper has limits."])
+narrator_caught = Array[String](["Victory! Bernard stands triumphant.", "Justice has been served. For now.", "The shopkeeper reigns supreme once more."])

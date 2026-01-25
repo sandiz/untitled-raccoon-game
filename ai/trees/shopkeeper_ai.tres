@@ -1,0 +1,49 @@
+[gd_resource type="BehaviorTree" load_steps=15 format=3 uid="uid://cl5r0c0b4u7o3"]
+
+[ext_resource type="Script" uid="uid://d0kqh6p3jda5t" path="res://ai/tasks/chase_player.gd" id="chase"]
+[ext_resource type="Script" uid="uid://crg3p8dnv1fpg" path="res://ai/tasks/play_idle.gd" id="idle"]
+[ext_resource type="Script" uid="uid://dgfuopq42ml7a" path="res://ai/tasks/move_to_position.gd" id="move"]
+[ext_resource type="Script" uid="uid://dhgs38nfop4e0" path="res://ai/tasks/select_random_position.gd" id="select"]
+[ext_resource type="Script" uid="uid://cf2j51g1pn3jn" path="res://ai/tasks/interruptible_wait.gd" id="wait"]
+
+[sub_resource type="BlackboardPlan" id="BlackboardPlan_1"]
+var/home_position/name = &"home_position"
+var/home_position/type = 9
+var/home_position/value = Vector3(0, 0, 0)
+var/home_position/hint = 0
+var/home_position/hint_string = ""
+var/wander_target/name = &"wander_target"
+var/wander_target/type = 9
+var/wander_target/value = Vector3(0, 0, 0)
+var/wander_target/hint = 0
+var/wander_target/hint_string = ""
+
+[sub_resource type="BTAction" id="Action_Chase"]
+script = ExtResource("chase")
+
+[sub_resource type="BTAction" id="Action_Select"]
+script = ExtResource("select")
+radius = 6.0
+
+[sub_resource type="BTAction" id="Action_Move"]
+script = ExtResource("move")
+
+[sub_resource type="BTAction" id="Action_Idle"]
+script = ExtResource("idle")
+
+[sub_resource type="BTAction" id="Action_Wait"]
+script = ExtResource("wait")
+
+[sub_resource type="BTSequence" id="Seq_Wander"]
+children = [SubResource("Action_Select"), SubResource("Action_Move"), SubResource("Action_Idle"), SubResource("Action_Wait")]
+
+[sub_resource type="BTSelector" id="Selector_Main"]
+children = [SubResource("Action_Chase"), SubResource("Seq_Wander")]
+
+[sub_resource type="BTRepeat" id="Repeat_Forever"]
+children = [SubResource("Selector_Main")]
+times = 0
+
+[resource]
+blackboard_plan = SubResource("BlackboardPlan_1")
+root_task = SubResource("Repeat_Forever")

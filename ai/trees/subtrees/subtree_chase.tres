@@ -1,0 +1,52 @@
+[gd_resource type="BehaviorTree" load_steps=22 format=3 uid="uid://cla34jaylxrqk"]
+
+[ext_resource type="Script" uid="uid://pqns4v2v7k7f" path="res://ai/tasks/catch_player.gd" id="action_catch"]
+[ext_resource type="Script" uid="uid://d0kqh6p3jda5t" path="res://ai/tasks/chase_player.gd" id="action_chase"]
+[ext_resource type="Script" uid="uid://s3sohrqng2oi" path="res://ai/tasks/give_up_chase.gd" id="action_give_up"]
+[ext_resource type="Script" uid="uid://b280yro4mety6" path="res://ai/tasks/search_for_player.gd" id="action_search"]
+[ext_resource type="Script" uid="uid://b86y6juxu3xsx" path="res://ai/tasks/conditions/check_can_see_player.gd" id="cond_can_see"]
+[ext_resource type="Script" uid="uid://c3rq0u74xmdsv" path="res://ai/tasks/conditions/check_should_give_up.gd" id="cond_give_up"]
+[ext_resource type="Script" uid="uid://ce8rtvj77p5un" path="res://ai/tasks/conditions/check_has_last_known.gd" id="cond_has_last"]
+[ext_resource type="Script" uid="uid://dg02ukcih77vn" path="res://ai/tasks/conditions/check_player_in_range.gd" id="cond_in_range"]
+
+[sub_resource type="BTCondition" id="Cond_InRange"]
+script = ExtResource("cond_in_range")
+
+[sub_resource type="BTAction" id="Action_Catch"]
+script = ExtResource("action_catch")
+
+[sub_resource type="BTSequence" id="Seq_Catch"]
+children = [SubResource("Cond_InRange"), SubResource("Action_Catch")]
+
+[sub_resource type="BTCondition" id="Cond_CanSee"]
+script = ExtResource("cond_can_see")
+
+[sub_resource type="BTAction" id="Action_Chase"]
+script = ExtResource("action_chase")
+
+[sub_resource type="BTSequence" id="Seq_ActiveChase"]
+children = [SubResource("Cond_CanSee"), SubResource("Action_Chase")]
+
+[sub_resource type="BTCondition" id="Cond_HasLast"]
+script = ExtResource("cond_has_last")
+
+[sub_resource type="BTAction" id="Action_Search"]
+script = ExtResource("action_search")
+
+[sub_resource type="BTSequence" id="Seq_Search"]
+children = [SubResource("Cond_HasLast"), SubResource("Action_Search")]
+
+[sub_resource type="BTCondition" id="Cond_GiveUp"]
+script = ExtResource("cond_give_up")
+
+[sub_resource type="BTAction" id="Action_GiveUp"]
+script = ExtResource("action_give_up")
+
+[sub_resource type="BTSequence" id="Seq_GiveUp"]
+children = [SubResource("Cond_GiveUp"), SubResource("Action_GiveUp")]
+
+[sub_resource type="BTSelector" id="Selector_ChaseRoot"]
+children = [SubResource("Seq_Catch"), SubResource("Seq_ActiveChase"), SubResource("Seq_Search"), SubResource("Seq_GiveUp")]
+
+[resource]
+root_task = SubResource("Selector_ChaseRoot")

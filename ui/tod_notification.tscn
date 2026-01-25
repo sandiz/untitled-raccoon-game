@@ -1,0 +1,36 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://ui/tod_notification.gd" id="1_script"]
+
+[node name="TODNotification" type="Control"]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -80.0
+offset_right = 300.0
+offset_bottom = -20.0
+grow_horizontal = 0
+grow_vertical = 0
+script = ExtResource("1_script")
+
+[node name="Icon" type="Label" parent="."]
+layout_mode = 0
+offset_left = 0.0
+offset_top = 10.0
+offset_right = 40.0
+offset_bottom = 50.0
+theme_override_font_sizes/font_size = 36
+text = "*"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Label" type="Label" parent="."]
+layout_mode = 0
+offset_left = 45.0
+offset_top = 10.0
+offset_right = 280.0
+offset_bottom = 50.0
+theme_override_font_sizes/font_size = 32
+text = "Morning..."
+vertical_alignment = 1

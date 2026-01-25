@@ -1,0 +1,28 @@
+[gd_scene load_steps=4 format=3 uid="uid://test_item_001"]
+
+[ext_resource type="Script" uid="uid://shop_item_001" path="res://systems/shop_item.gd" id="1_script"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1"]
+albedo_color = Color(1, 0.3, 0.3, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_1"]
+material = SubResource("StandardMaterial3D_1")
+radius = 0.15
+height = 0.3
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_1"]
+radius = 0.15
+
+[node name="TestItem" type="RigidBody3D"]
+collision_layer = 8
+collision_mask = 1
+mass = 0.5
+script = ExtResource("1_script")
+item_name = "Apple"
+value = 1
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("SphereMesh_1")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("SphereShape3D_1")

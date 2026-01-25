@@ -1,0 +1,9 @@
+[gd_resource type="BehaviorTree" load_steps=3 format=3 uid="uid://djrlf0k3p7grp"]
+
+[ext_resource type="Script" uid="uid://crg3p8dnv1fpg" path="res://ai/tasks/play_idle.gd" id="1_idle"]
+
+[sub_resource type="BTAction" id="BTAction_stub"]
+script = ExtResource("1_idle")
+
+[resource]
+root_task = SubResource("BTAction_stub")

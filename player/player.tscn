@@ -1,0 +1,110 @@
+[gd_scene load_steps=19 format=3 uid="uid://cplayer001"]
+
+[ext_resource type="PackedScene" uid="uid://bvbvgm6ktmcdf" path="res://player/raccoon.glb" id="1_mesh"]
+[ext_resource type="AnimationLibrary" uid="uid://b46m28yp3311e" path="res://player/Character_AnimationLibrary.tres" id="2_animlib"]
+[ext_resource type="Script" path="res://player/player_controller.gd" id="3_script"]
+[ext_resource type="Script" path="res://scripts/ghibli_shader_applier.gd" id="4_ghibli"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
+radius = 0.175
+height = 0.7
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_idle"]
+animation = &"default/Idle"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_walk"]
+animation = &"default/Walk"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_run"]
+animation = &"default/Sprint"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_jump"]
+animation = &"default/Jump_Start"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_fall"]
+animation = &"default/Jump"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_land"]
+animation = &"default/Jump_Land"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="trans_idle_walk"]
+xfade_time = 0.1
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="trans_walk_idle"]
+xfade_time = 0.1
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="trans_walk_run"]
+xfade_time = 0.1
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="trans_run_walk"]
+xfade_time = 0.1
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="trans_to_jump"]
+xfade_time = 0.1
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="trans_jump_fall"]
+xfade_time = 0.1
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="trans_fall_land"]
+xfade_time = 0.1
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="trans_land_idle"]
+xfade_time = 0.15
+advance_mode = 2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="trans_start_idle"]
+advance_mode = 2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="trans_idle_fall"]
+xfade_time = 0.1
+
+[sub_resource type="AnimationNodeStateMachine" id="AnimationNodeStateMachine_1"]
+states/Idle/node = SubResource("AnimationNodeAnimation_idle")
+states/Idle/position = Vector2(300, 100)
+states/Walk/node = SubResource("AnimationNodeAnimation_walk")
+states/Walk/position = Vector2(450, 100)
+states/Run/node = SubResource("AnimationNodeAnimation_run")
+states/Run/position = Vector2(600, 100)
+states/Jump/node = SubResource("AnimationNodeAnimation_jump")
+states/Jump/position = Vector2(450, 200)
+states/Fall/node = SubResource("AnimationNodeAnimation_fall")
+states/Fall/position = Vector2(550, 200)
+states/Land/node = SubResource("AnimationNodeAnimation_land")
+states/Land/position = Vector2(650, 200)
+states/Start/position = Vector2(150, 100)
+transitions = ["Start", "Idle", SubResource("trans_start_idle"), "Idle", "Walk", SubResource("trans_idle_walk"), "Walk", "Idle", SubResource("trans_walk_idle"), "Walk", "Run", SubResource("trans_walk_run"), "Run", "Walk", SubResource("trans_run_walk"), "Idle", "Jump", SubResource("trans_to_jump"), "Walk", "Jump", SubResource("trans_to_jump"), "Run", "Jump", SubResource("trans_to_jump"), "Jump", "Fall", SubResource("trans_jump_fall"), "Idle", "Fall", SubResource("trans_idle_fall"), "Fall", "Land", SubResource("trans_fall_land"), "Land", "Idle", SubResource("trans_land_idle")]
+graph_offset = Vector2(-50, 0)
+
+[node name="Player" type="CharacterBody3D" groups=["player"]]
+collision_layer = 4
+collision_mask = 1
+script = ExtResource("3_script")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.35, 0)
+shape = SubResource("CapsuleShape3D_1")
+
+[node name="Visuals" type="Node3D" parent="."]
+transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0, 0)
+
+[node name="CharacterMesh" parent="Visuals" instance=ExtResource("1_mesh")]
+unique_name_in_owner = true
+
+[node name="GhibliShader" type="Node" parent="Visuals/CharacterMesh"]
+script = ExtResource("4_ghibli")
+apply_toon_shader = true
+apply_outline = true
+outline_color = Color(0.15, 0.1, 0.1, 1)
+outline_width = 0.02
+enable_rim_light = true
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="Visuals"]
+root_node = NodePath("../CharacterMesh")
+libraries = {
+&"default": ExtResource("2_animlib")
+}
+
+[node name="AnimationTree" type="AnimationTree" parent="Visuals"]
+root_node = NodePath("../%CharacterMesh")
+tree_root = SubResource("AnimationNodeStateMachine_1")
+anim_player = NodePath("../AnimationPlayer")
