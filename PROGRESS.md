@@ -14,7 +14,7 @@
 - Day/night cycle (10 min, 4 periods)
 - Game speed controls (1-4 keys)
 - TOD clock widget (top-left, V to expand, pause/speed controls)
-- NPC info panel (top-right, portrait with rounded corners, stats)
+- NPC info panel (top-right, N to expand, portrait with rounded corners)
 
 ## Controls
 
@@ -25,6 +25,7 @@
 | Space | Jump |
 | E/Q | Honk |
 | V | Toggle TOD widget expand |
+| N | Toggle NPC info panel expand |
 | F3 | Debug overlay |
 | 1-4 | Game speed |
 
@@ -42,7 +43,7 @@
 | Vision indicator (ground glow) | ✅ Done |
 | Game speed controls | ✅ Done |
 | TOD clock widget | ✅ Done |
-| NPC info panel | ✅ Done |
+| NPC info panel (fold/expand) | ✅ Done |
 | NPC portrait (rounded corners) | ✅ Done |
 | Pause functionality | ✅ Done |
 
