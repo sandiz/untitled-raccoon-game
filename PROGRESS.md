@@ -9,12 +9,12 @@
 
 - Player with WASD movement, jump, run, honk
 - Shopkeeper NPC with wander + chase behavior
-- Emotional state, perception, social systems
+- Emotional state system (4 meters - considering simplifying to 3)
 - Ghibli-style toon shading + outlines
 - Day/night cycle (10 min, 4 periods)
 - Game speed controls (1-4 keys)
-- TOD clock widget (top-left, V to expand)
-- NPC info panel (top-right, wildlife documentary style)
+- TOD clock widget (top-left, V to expand, pause/speed controls)
+- NPC info panel (top-right, portrait with rounded corners, stats)
 
 ## Controls
 
@@ -43,15 +43,20 @@
 | Game speed controls | ✅ Done |
 | TOD clock widget | ✅ Done |
 | NPC info panel | ✅ Done |
-| Consistent UI style (dark translucent) | ✅ Done |
+| NPC portrait (rounded corners) | ✅ Done |
+| Pause functionality | ✅ Done |
 
-## Current Sprint: Visual Polish
+## Pending Decisions
 
-| # | Task | Type | Notes |
-|---|------|------|-------|
-| 1 | UI look & feel | UI | Final polish pass |
-| 2 | Day/night visuals | Visual | Time-based lighting/mood |
-| 3 | Outline shader polish | Visual | Ghibli-style tweaks |
+### Emotional Meters
+Current 4 meters (Alert, Annoyed, Tired, Suspicious) have overlap.
+
+**Proposed 3-meter system:**
+| Meter | Drives | Player manipulates by |
+|-------|--------|----------------------|
+| ⚡ Energy | Chase duration, give up | Making them run |
+| 🔥 Agitation | Aggression, detection | Mischief, being spotted |
+| 👀 Awareness | FOV, reaction time | Distractions, hiding |
 
 ## Future: LLM Integration
 
@@ -60,16 +65,15 @@
 | Narrator text generation | LLM picks contextual narrator lines |
 | Dialogue text generation | LLM picks NPC dialogue based on state/mood |
 
-*(Do visual polish first, then LLM integration)*
-
 ## Next Up (After Visual Polish)
 
-| # | Feature | Type | Notes |
-|---|---------|------|-------|
-| 1 | LLM narrator/dialogue | AI/LLM | Dynamic text generation |
-| 2 | Search behavior | BT | When player escapes LOS |
-| 3 | Give up when exhausted | BT | Wire up will_give_up |
-| 4 | Item stealing detection | BT | P2 |
+| # | Feature | Type |
+|---|---------|------|
+| 1 | Finalize meter system | Design |
+| 2 | LLM narrator/dialogue | AI/LLM |
+| 3 | Search behavior | BT |
+| 4 | Give up when exhausted | BT |
+| 5 | Item stealing detection | BT |
 
 ## UI Style Guide
 

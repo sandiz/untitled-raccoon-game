@@ -12,6 +12,7 @@ var _current_npc: Node3D = null
 var _tween: Tween
 var _last_state: String = ""
 var _editor_scale: float = 1.0
+var _expanded: bool = true
 
 # UI Elements (built in _ready)
 var _container: PanelContainer
@@ -23,6 +24,8 @@ var _narrator_label: RichTextLabel
 var _dialogue_label: RichTextLabel
 var _state_label: Label
 var _stats_box: VBoxContainer
+var _expanded_box: VBoxContainer
+var _expand_btn: Button
 
 # Stat bars
 var _alertness_bar: ProgressBar
@@ -38,6 +41,15 @@ func _ready() -> void:
 	modulate.a = 0.0
 
 
+func _input(event: InputEvent) -> void:
+	if not visible:
+		return
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_N:
+			_toggle_expanded()
+			get_viewport().set_input_as_handled()
+
+
 func _get_editor_scale() -> float:
 	if Engine.is_editor_hint():
 		return EditorInterface.get_editor_scale()
@@ -48,12 +60,18 @@ func _s(val: int) -> int:
 	return int(val * _editor_scale)
 
 
+func _toggle_expanded() -> void:
+	_expanded = not _expanded
+	_expanded_box.visible = _expanded
+	_expand_btn.text = "▲" if _expanded else "▼"
+
+
 func _build_ui() -> void:
 	var font = load("res://assets/fonts/JetBrainsMono.ttf")
 	
 	# Main container
 	_container = PanelContainer.new()
-	_container.custom_minimum_size = Vector2(_s(280), 0)
+	_container.custom_minimum_size = Vector2(_s(300), 0)
 	add_child(_container)
 	
 	# Panel style - dark translucent (matches TOD widget)
@@ -80,7 +98,7 @@ func _build_ui() -> void:
 	portrait_container.custom_minimum_size = Vector2(_s(70), _s(70))
 	portrait_container.clip_children = CanvasItem.CLIP_CHILDREN_AND_DRAW
 	var portrait_style = StyleBoxFlat.new()
-	portrait_style.bg_color = Color(0.15, 0.15, 0.2, 0.5)
+	portrait_style.bg_color = Color(1, 1, 1, 1)  # White opaque - image covers it, defines clip shape
 	portrait_style.set_corner_radius_all(_s(10))
 	portrait_container.add_theme_stylebox_override("panel", portrait_style)
 	top_row.add_child(portrait_container)
@@ -100,22 +118,57 @@ func _build_ui() -> void:
 	header_vbox.add_theme_constant_override("separation", _s(4))
 	top_row.add_child(header_vbox)
 	
+	# Name row with expand button
+	var name_row = HBoxContainer.new()
+	name_row.add_theme_constant_override("separation", _s(8))
+	header_vbox.add_child(name_row)
+	
 	_name_label = Label.new()
 	_name_label.add_theme_font_override("font", font)
 	_name_label.add_theme_font_size_override("font_size", _s(22))
 	_name_label.add_theme_color_override("font_color", text_color)
 	_name_label.text = "Bernard"
-	header_vbox.add_child(_name_label)
+	_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_row.add_child(_name_label)
+	
+	# Expand/collapse button
+	_expand_btn = Button.new()
+	_expand_btn.text = "▲"
+	_expand_btn.add_theme_font_override("font", font)
+	_expand_btn.add_theme_font_size_override("font_size", _s(14))
+	_expand_btn.custom_minimum_size = Vector2(_s(32), _s(28))
+	_expand_btn.pressed.connect(_toggle_expanded)
+	name_row.add_child(_expand_btn)
+	
+	# Title + State row (compact)
+	var title_row = HBoxContainer.new()
+	title_row.add_theme_constant_override("separation", _s(8))
+	header_vbox.add_child(title_row)
 	
 	_title_label = Label.new()
 	_title_label.add_theme_font_override("font", font)
 	_title_label.add_theme_font_size_override("font_size", _s(14))
 	_title_label.add_theme_color_override("font_color", subtitle_color)
 	_title_label.text = "The Grumpy Shopkeeper"
-	header_vbox.add_child(_title_label)
+	_title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	title_row.add_child(_title_label)
+	
+	# State label (always visible, in header)
+	_state_label = Label.new()
+	_state_label.add_theme_font_override("font", font)
+	_state_label.add_theme_font_size_override("font_size", _s(14))
+	_state_label.add_theme_color_override("font_color", text_color)
+	_state_label.text = "● Idle"
+	title_row.add_child(_state_label)
+	
+	# === EXPANDED CONTENT ===
+	_expanded_box = VBoxContainer.new()
+	_expanded_box.add_theme_constant_override("separation", _s(12))
+	main_vbox.add_child(_expanded_box)
 	
 	# Separator
-	main_vbox.add_child(HSeparator.new())
+	_expanded_box.add_child(HSeparator.new())
 	
 	# === NARRATOR TEXT === (fixed height to prevent layout shift)
 	_narrator_label = RichTextLabel.new()
@@ -130,10 +183,10 @@ func _build_ui() -> void:
 	_narrator_label.add_theme_font_size_override("italics_font_size", _s(14))
 	_narrator_label.add_theme_color_override("default_color", subtitle_color)
 	_narrator_label.text = "[i]A quiet moment...[/i]"
-	main_vbox.add_child(_narrator_label)
+	_expanded_box.add_child(_narrator_label)
 	
 	# Separator
-	main_vbox.add_child(HSeparator.new())
+	_expanded_box.add_child(HSeparator.new())
 	
 	# === DIALOGUE TEXT === (fixed height to prevent layout shift)
 	_dialogue_label = RichTextLabel.new()
@@ -146,23 +199,12 @@ func _build_ui() -> void:
 	_dialogue_label.add_theme_font_size_override("normal_font_size", _s(16))
 	_dialogue_label.add_theme_color_override("default_color", text_color)
 	_dialogue_label.text = "\"Another quiet day...\""
-	main_vbox.add_child(_dialogue_label)
+	_expanded_box.add_child(_dialogue_label)
 	
-	# Separator
-	main_vbox.add_child(HSeparator.new())
-	
-	# === STATE LABEL ===
-	_state_label = Label.new()
-	_state_label.add_theme_font_override("font", font)
-	_state_label.add_theme_font_size_override("font_size", _s(16))
-	_state_label.add_theme_color_override("font_color", text_color)
-	_state_label.text = "● Idle"
-	main_vbox.add_child(_state_label)
-	
-	# === STAT BARS ===
+	# === STAT BARS === (in expanded box)
 	_stats_box = VBoxContainer.new()
 	_stats_box.add_theme_constant_override("separation", _s(8))
-	main_vbox.add_child(_stats_box)
+	_expanded_box.add_child(_stats_box)
 	
 	_alertness_bar = _create_stat_bar("👁 Alert", Color(1.0, 0.9, 0.2))
 	_annoyance_bar = _create_stat_bar("😤 Annoyed", Color(1.0, 0.4, 0.3))
