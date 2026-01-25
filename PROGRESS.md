@@ -62,7 +62,7 @@
 - Typewriter text effect
 - Subtle bob animation
 - **Synced with NPC info panel** via NPCDataStore (single source of truth)
-- **TODO:** Message priority system (high-prio messages stay on screen)
+- **Message priority system** ✅ High-prio messages (chasing, caught) stay on screen longer
 
 ## Speed Options
 

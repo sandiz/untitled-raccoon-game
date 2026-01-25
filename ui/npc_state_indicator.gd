@@ -2,6 +2,35 @@ class_name NPCStateIndicator
 extends Node3D
 ## Speech bubble using SubViewport for clean 2D rendering in 3D.
 ## Listens to NPCDataStore for state/dialogue updates.
+## Supports message priority - high priority messages can't be replaced by lower ones.
+
+# Message priority levels
+enum Priority { LOW = 0, NORMAL = 1, HIGH = 2, CRITICAL = 3 }
+
+# Minimum display times per priority (seconds)
+const PRIORITY_MIN_TIMES := {
+	Priority.LOW: 0.0,       # Can be replaced immediately
+	Priority.NORMAL: 1.0,    # At least 1 second
+	Priority.HIGH: 2.5,      # Important messages stay 2.5s
+	Priority.CRITICAL: 4.0,  # Critical stays 4s
+}
+
+# State to priority mapping
+const STATE_PRIORITIES := {
+	"idle": Priority.LOW,
+	"calm": Priority.LOW,
+	"returning": Priority.LOW,
+	"alert": Priority.NORMAL,
+	"suspicious": Priority.NORMAL,
+	"investigating": Priority.NORMAL,
+	"searching": Priority.HIGH,
+	"chasing": Priority.HIGH,
+	"angry": Priority.HIGH,
+	"tired": Priority.NORMAL,
+	"frustrated": Priority.NORMAL,
+	"gave_up": Priority.NORMAL,
+	"caught": Priority.CRITICAL,
+}
 
 @export var npc_id: String = ""  # Set by shopkeeper to identify which NPC this belongs to
 @export var height_offset: float = 3.3
@@ -26,6 +55,11 @@ var _typewriter_tween: Tween
 var _popin_tween: Tween
 var _scale: float = 5.0
 var _time: float = 0.0
+
+# Priority system
+var _current_priority: int = Priority.LOW
+var _message_time: float = 0.0  # How long current message has been shown
+var _message_locked: bool = false  # True while min display time hasn't elapsed
 
 
 var _data_store: NPCDataStore
@@ -160,6 +194,13 @@ func _setup_sprite() -> void:
 func _process(delta: float) -> void:
 	_time += delta
 	
+	# Track message display time for priority system
+	if _sprite.visible and _message_locked:
+		_message_time += delta
+		var min_time = PRIORITY_MIN_TIMES.get(_current_priority, 0.0)
+		if _message_time >= min_time:
+			_message_locked = false
+	
 	# Update sprite texture from viewport
 	if _viewport and _sprite:
 		_sprite.texture = _viewport.get_texture()
@@ -170,9 +211,21 @@ func _process(delta: float) -> void:
 		_sprite.position.y = height_offset + bob
 
 
-func show_dialogue(text: String, _duration: float = 3.0, state: String = "idle") -> void:
+func show_dialogue(text: String, _duration: float = 3.0, state: String = "idle", priority: int = -1) -> void:
 	if text.is_empty():
 		hide_indicator()
+		return
+	
+	# Determine priority from state if not explicitly provided
+	var msg_priority = priority if priority >= 0 else STATE_PRIORITIES.get(state, Priority.NORMAL)
+	
+	# Check if current message is locked (min display time not elapsed)
+	if _message_locked and msg_priority < _current_priority:
+		# Can't replace - current message has higher priority and is still locked
+		return
+	
+	# Same or lower priority can't replace if locked
+	if _message_locked and msg_priority <= _current_priority:
 		return
 	
 	# Stop any existing tweens
@@ -180,6 +233,11 @@ func show_dialogue(text: String, _duration: float = 3.0, state: String = "idle")
 		_typewriter_tween.kill()
 	if _popin_tween:
 		_popin_tween.kill()
+	
+	# Set priority tracking
+	_current_priority = msg_priority
+	_message_time = 0.0
+	_message_locked = PRIORITY_MIN_TIMES.get(msg_priority, 0.0) > 0.0
 	
 	# Status-based emoji (from shared utility)
 	_emoji_label.text = NPCUIUtils.get_status_emoji(state)
@@ -260,6 +318,9 @@ func _resize_to_fit() -> void:
 
 func hide_indicator() -> void:
 	_sprite.visible = false
+	_current_priority = Priority.LOW
+	_message_locked = false
+	_message_time = 0.0
 
 
 func _on_state_changed(changed_npc_id: String, data: Dictionary) -> void:
