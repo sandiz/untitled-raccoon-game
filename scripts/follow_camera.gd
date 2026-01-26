@@ -33,7 +33,29 @@ func _ready() -> void:
 		target = get_node_or_null(target_path)
 	_default_target = target
 	
+	# Snap camera to target immediately on start
+	if target:
+		_snap_to_target()
+	
 	call_deferred("_connect_to_data_store")
+
+
+func _snap_to_target() -> void:
+	if not target:
+		return
+	_smooth_target_pos = target.global_position
+	_initialized = true
+	
+	var zoomed_distance = distance * current_zoom
+	var zoomed_height = height * current_zoom
+	var offset = Vector3(
+		sin(current_angle) * zoomed_distance,
+		zoomed_height,
+		cos(current_angle) * zoomed_distance
+	)
+	global_position = _smooth_target_pos + offset
+	look_at(_smooth_target_pos + Vector3(0, look_height_offset, 0), Vector3.UP)
+	rotation.z = 0
 
 
 func _connect_to_data_store() -> void:

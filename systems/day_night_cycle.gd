@@ -1,3 +1,4 @@
+@tool
 class_name DayNightCycle
 extends Node
 ## Manages the day/night cycle with smooth transitions between time periods.
@@ -15,6 +16,13 @@ const DEFAULT_SETTINGS_PATH := "res://systems/default_tod_settings.tres"
 @export var auto_start: bool = true
 @export var auto_cycle: bool = true  ## False = manual control only
 
+## Starting time of day - reflected in editor, used on play if no save found
+@export var starting_period: TimePeriod = TimePeriod.MORNING:
+	set(value):
+		starting_period = value
+		if Engine.is_editor_hint() and is_inside_tree():
+			_apply_editor_preview()
+
 @export_group("References")
 @export var world_environment: WorldEnvironment
 @export var directional_light: DirectionalLight3D
@@ -25,10 +33,18 @@ const DEFAULT_SETTINGS_PATH := "res://systems/default_tod_settings.tres"
 
 # Fog colors per period
 const FOG_COLORS := {
-	"morning": Color(0.9, 0.75, 0.55),    # Golden sunrise haze
-	"afternoon": Color(0.85, 0.88, 0.92), # Clear bright blue-white
+	"morning": Color(0.95, 0.85, 0.65),   # Warm golden
+	"afternoon": Color(0.98, 0.95, 0.88), # Bright clear
 	"evening": Color(0.75, 0.55, 0.5),    # Warm coral
 	"night": Color(0.25, 0.3, 0.4),       # Cool blue
+}
+
+# Fog density per period (lower = less fog)
+const FOG_DENSITIES := {
+	"morning": 0.005,
+	"afternoon": 0.002,   # Reduced fog for clear bright sun
+	"evening": 0.006,
+	"night": 0.008,
 }
 
 var _current_time: float = 0.0
@@ -39,6 +55,10 @@ var _materials_cached: bool = false
 
 
 func _ready() -> void:
+	if Engine.is_editor_hint():
+		_apply_editor_preview()
+		return
+	
 	add_to_group("day_night_cycle")
 	_load_settings()
 	_auto_find_references()
@@ -63,10 +83,26 @@ func _load_settings() -> void:
 		settings = TODSettings.new()
 
 
+func _apply_editor_preview() -> void:
+	if not Engine.is_editor_hint():
+		return
+	_load_settings()
+	_auto_find_references()
+	if not world_environment or not directional_light:
+		return
+	_current_period = starting_period
+	_apply_period_settings(starting_period)
+
+
 func _auto_find_references() -> void:
-	var scene_root = get_tree().current_scene
+	# In editor, get_tree() or current_scene may be null
+	var scene_root: Node = null
+	if get_tree():
+		scene_root = get_tree().current_scene if get_tree().current_scene else get_tree().edited_scene_root
 	if not scene_root:
 		scene_root = get_parent()
+	if not scene_root:
+		return  # Can't find references without a scene root
 	
 	if not world_environment:
 		world_environment = _find_node_of_type(scene_root, "WorldEnvironment") as WorldEnvironment
@@ -103,7 +139,7 @@ func is_paused() -> bool:
 
 
 func _process(delta: float) -> void:
-	if _paused or not auto_cycle:
+	if Engine.is_editor_hint() or _paused or not auto_cycle:
 		return
 	
 	_current_time += delta
@@ -126,7 +162,8 @@ func _update_lighting() -> void:
 		var old_name = PERIOD_NAMES[_current_period]
 		var new_name = PERIOD_NAMES[new_period]
 		_current_period = new_period
-		time_of_day_changed.emit(new_name, old_name)
+		if not Engine.is_editor_hint():
+			time_of_day_changed.emit(new_name, old_name)
 	
 	# Only blend at END of each period (approaching next period)
 	# This prevents the "reset" bug where start-of-period blending undoes end-of-period blending
@@ -153,6 +190,7 @@ func _get_period_settings(period: TimePeriod) -> Dictionary:
 				"ambient_energy": settings.morning_ambient_energy,
 				"brightness": settings.morning_brightness,
 				"fog_color": FOG_COLORS.morning,
+				"fog_density": FOG_DENSITIES.morning,
 				"use_night_sky": false,
 			}
 		TimePeriod.AFTERNOON:
@@ -163,6 +201,7 @@ func _get_period_settings(period: TimePeriod) -> Dictionary:
 				"ambient_energy": settings.afternoon_ambient_energy,
 				"brightness": settings.afternoon_brightness,
 				"fog_color": FOG_COLORS.afternoon,
+				"fog_density": FOG_DENSITIES.afternoon,
 				"use_night_sky": false,
 			}
 		TimePeriod.EVENING:
@@ -173,6 +212,7 @@ func _get_period_settings(period: TimePeriod) -> Dictionary:
 				"ambient_energy": settings.evening_ambient_energy,
 				"brightness": settings.evening_brightness,
 				"fog_color": FOG_COLORS.evening,
+				"fog_density": FOG_DENSITIES.evening,
 				"use_night_sky": false,
 			}
 		TimePeriod.NIGHT:
@@ -183,6 +223,7 @@ func _get_period_settings(period: TimePeriod) -> Dictionary:
 				"ambient_energy": settings.night_ambient_energy,
 				"brightness": settings.night_brightness,
 				"fog_color": FOG_COLORS.night,
+				"fog_density": FOG_DENSITIES.night,
 				"use_night_sky": true,
 			}
 	return {}
@@ -201,6 +242,7 @@ func _apply_blended_settings(from: Dictionary, to: Dictionary, blend: float) -> 
 		"ambient_energy": lerpf(from.ambient_energy, to.ambient_energy, blend),
 		"brightness": lerpf(from.brightness, to.brightness, blend),
 		"fog_color": from.fog_color.lerp(to.fog_color, blend),
+		"fog_density": lerpf(from.fog_density, to.fog_density, blend),
 		"use_night_sky": to.use_night_sky if blend > 0.5 else from.use_night_sky,
 	}
 	_apply_settings(blended)
@@ -219,9 +261,11 @@ func _apply_settings(s: Dictionary) -> void:
 		env.ambient_light_color = s.ambient_color
 		env.ambient_light_energy = s.ambient_energy
 		
-		# Fog color
+		# Fog
 		if s.has("fog_color"):
 			env.fog_light_color = s.fog_color
+		if s.has("fog_density"):
+			env.fog_density = s.fog_density
 		
 		# Switch skybox
 		if s.has("use_night_sky") and env.sky and env.sky.sky_material:

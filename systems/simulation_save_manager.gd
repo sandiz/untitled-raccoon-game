@@ -156,6 +156,29 @@ func has_save(slot: String = AUTOSAVE_SLOT) -> bool:
 	return FileAccess.file_exists(SAVE_DIR + slot + ".json")
 
 
+## Get saved normalized time (0.0-1.0) or -1.0 if no save exists
+func get_saved_time(slot: String = AUTOSAVE_SLOT) -> float:
+	var path = SAVE_DIR + slot + ".json"
+	
+	if not FileAccess.file_exists(path):
+		return -1.0
+	
+	var file = FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return -1.0
+	
+	var json_text = file.get_as_text()
+	file.close()
+	
+	var json = JSON.new()
+	var error = json.parse(json_text)
+	if error != OK:
+		return -1.0
+	
+	var save_data: Dictionary = json.data
+	return save_data.get("time_of_day", -1.0)
+
+
 ## Delete a save
 func delete_save(slot: String = AUTOSAVE_SLOT) -> void:
 	var path = SAVE_DIR + slot + ".json"
