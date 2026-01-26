@@ -7,6 +7,7 @@ extends Node3D
 @export var vision_range: float = 10.0
 @export var vision_angle: float = 90.0  # Degrees, total arc
 @export var hearing_range: float = 10.0  # Same as vision
+@export var vision_start_offset: float = 1.0  # Start cone 1m ahead of feet
 @export var vision_color: Color = Color(0.2, 0.75, 0.3, 0.5)  # Vivid green (idle)
 @export var vision_outline_color: Color = Color(0.1, 0.6, 0.2, 0.9)  # Strong green outline
 @export var hearing_color: Color = Color(0.6, 0.2, 0.7, 0.25)  # Vivid violet - contrasts with green
@@ -119,17 +120,27 @@ func _update_vision_outline_mesh() -> void:
 	var half_angle = deg_to_rad(vision_angle / 2.0)
 	var segments = 48  # High count for smooth arc
 	
-	# Start at center
-	mesh.surface_add_vertex(Vector3.ZERO)
+	# Start point is offset forward (1m ahead of feet)
+	var start_point = Vector3(0, 0, vision_start_offset)
 	
-	# Arc edge
+	# Calculate left edge point at start offset
+	var left_start = Vector3(sin(-half_angle) * vision_start_offset, 0, cos(-half_angle) * vision_start_offset)
+	var right_start = Vector3(sin(half_angle) * vision_start_offset, 0, cos(half_angle) * vision_start_offset)
+	
+	# Start at left edge of the offset start
+	mesh.surface_add_vertex(left_start)
+	
+	# Arc edge at full range
 	for i in range(segments + 1):
 		var angle = -half_angle + (half_angle * 2.0 * i / segments)
 		var p = Vector3(sin(angle) * vision_range, 0, cos(angle) * vision_range)
 		mesh.surface_add_vertex(p)
 	
-	# Back to center
-	mesh.surface_add_vertex(Vector3.ZERO)
+	# Back to right edge of the offset start
+	mesh.surface_add_vertex(right_start)
+	
+	# Close the gap - draw line across the start arc
+	mesh.surface_add_vertex(left_start)
 	
 	mesh.surface_end()
 
@@ -144,21 +155,30 @@ func _update_vision_cone_mesh() -> void:
 	
 	var half_angle = deg_to_rad(vision_angle / 2.0)
 	var segments = 32  # High count for smooth arc
-	var center = Vector3.ZERO
 	
-	# Create fan of triangles facing forward (+Z is forward for this model)
+	# Create truncated cone (starts 1m ahead)
+	# Draw triangles between inner arc (at offset) and outer arc (at range)
 	for i in range(segments):
 		var angle1 = -half_angle + (half_angle * 2.0 * i / segments)
 		var angle2 = -half_angle + (half_angle * 2.0 * (i + 1) / segments)
 		
-		# Points on the arc (rotated around Y axis, facing +Z)
-		var p1 = Vector3(sin(angle1) * vision_range, 0, cos(angle1) * vision_range)
-		var p2 = Vector3(sin(angle2) * vision_range, 0, cos(angle2) * vision_range)
+		# Inner arc points (at start offset)
+		var inner1 = Vector3(sin(angle1) * vision_start_offset, 0, cos(angle1) * vision_start_offset)
+		var inner2 = Vector3(sin(angle2) * vision_start_offset, 0, cos(angle2) * vision_start_offset)
 		
-		# Triangle from center to arc edge
-		mesh.surface_add_vertex(center)
-		mesh.surface_add_vertex(p1)
-		mesh.surface_add_vertex(p2)
+		# Outer arc points (at full range)
+		var outer1 = Vector3(sin(angle1) * vision_range, 0, cos(angle1) * vision_range)
+		var outer2 = Vector3(sin(angle2) * vision_range, 0, cos(angle2) * vision_range)
+		
+		# Triangle 1: inner1 -> outer1 -> outer2
+		mesh.surface_add_vertex(inner1)
+		mesh.surface_add_vertex(outer1)
+		mesh.surface_add_vertex(outer2)
+		
+		# Triangle 2: inner1 -> outer2 -> inner2
+		mesh.surface_add_vertex(inner1)
+		mesh.surface_add_vertex(outer2)
+		mesh.surface_add_vertex(inner2)
 	
 	mesh.surface_end()
 
@@ -183,6 +203,8 @@ func set_ranges(vision: float, hearing: float, angle: float = 90.0) -> void:
 	
 	if _vision_mesh:
 		_update_vision_cone_mesh()
+	if _vision_outline:
+		_update_vision_outline_mesh()
 
 
 func set_state(state: String) -> void:
