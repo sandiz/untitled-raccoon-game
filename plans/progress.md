@@ -1,8 +1,8 @@
 # Progress
 
-## Current State: Core Loop Solid ✅
+## Current State: Theft Detection Complete ✅
 
-The idle/chase cycle is now **bulletproof** with proper BT hygiene.
+The idle/chase cycle is **bulletproof** and now includes **theft detection** - shopkeeper only chases when seeing the raccoon holding a stolen item.
 
 ---
 
@@ -46,9 +46,13 @@ BTRepeat (forever)
 | Temper | 0→100 | Builds from failed chases, speeds pursuit |
 
 ### Thresholds
-- `will_chase`: Suspicion ≥ 70
+- `will_chase`: Suspicion ≥ 70 (HUNTING_THRESHOLD)
 - `will_give_up`: Stamina ≤ 20
 - Chase speed multiplier: 1.0 + (temper * 0.005)
+
+### Theft Detection ✅
+- Seeing raccoon alone: Suspicion +40 (alert but NO chase)
+- Seeing raccoon with item: `on_saw_stealing()` → Suspicion = 100 → CHASE!
 
 ---
 
@@ -119,9 +123,16 @@ npcs/
 
 systems/
 ├── npc_emotional_state.gd # 3-meter system
-├── npc_perception.gd      # Sight/hearing checks
+├── npc_perception.gd      # Sight/hearing + target_is_holding_item
 ├── npc_personality.gd     # Data-driven traits
+├── shop_item.gd           # Stealable items (is_held, pickup)
 └── simulation_save_manager.gd
+
+items/
+└── stealable_item.gd      # Base class (alternative to ShopItem)
+
+player/
+└── player_controller.gd   # WASD + E pickup/drop system
 
 ui/
 ├── npc_info_panel.gd
@@ -138,9 +149,31 @@ plans/
 
 ---
 
+## Theft/Pickup System ✅ (NEW)
+
+### Player Pickup
+- Press **E** to pick up / drop items
+- `is_holding_item()` method for detection
+- Pickup prompt appears near items
+- Items reparent to player when held
+
+### ShopItem Integration
+- Added `is_held` computed property
+- Added to `stealable_items` group
+- `pickup()` wrapper for compatibility
+
+### Detection Flow
+```
+Raccoon exists → Shopkeeper sees → Suspicion ~50 → Alert, NO CHASE
+Raccoon + Item → Shopkeeper sees → on_saw_stealing() → Suspicion 100 → CHASE!
+```
+
+---
+
 ## Next Steps
 
-1. **Gameplay**: Add stealable items, player inventory
-2. **AI**: Search behavior when player escapes
-3. **Audio**: Footsteps, alert sounds, music
-4. **Polish**: More NPC dialogue variety, animations
+1. **Gameplay**: Item drop on catch, item return behavior
+2. **AI**: Search behavior when player escapes  
+3. **Audio**: Footsteps, alert sounds, honk
+4. **Polish**: More NPC dialogue variety, catch animation
+5. **Juice**: Screen shake on catch, particle effects
