@@ -98,7 +98,10 @@ func _setup_viewport() -> void:
 	# Round all corners
 	style.set_corner_radius_all(_s(10))
 	# Padding on all sides (uniform like BaseWidget)
-	style.set_content_margin_all(_s(14))
+	style.content_margin_left = _s(14)
+	style.content_margin_right = _s(14)
+	style.content_margin_top = _s(14)
+	style.content_margin_bottom = _s(18)  # Extra bottom padding for descenders (q, g, y, p, j)
 	_panel.add_theme_stylebox_override("panel", style)
 	container.add_child(_panel)
 	
