@@ -228,6 +228,32 @@ BTRepeat (forever)
 
 **Key Points:**
 - Chase returns FAILURE when not chasing → selector falls through to wander
+
+---
+
+## 10. Keep Task Files Minimal
+
+**Problem:** Accumulated unused task/condition files that add confusion.
+
+**Solution:** Only keep files that are actually used in the BT:
+
+**Current active tasks (5 files):**
+```
+ai/tasks/
+├── chase_player.gd      # Handles chase + catch + celebrate + give-up
+├── play_idle.gd         # Play idle anim, wait for physics
+├── move_to_position.gd  # Navigate with rotation-first
+├── select_random_position.gd  # Pick wander target
+└── interruptible_wait.gd      # Wait, abort on will_chase
+```
+
+**Removed (functionality merged or unused):**
+- catch_player.gd → merged into chase_player.gd
+- give_up_chase.gd → merged into chase_player.gd
+- search_for_player.gd → never wired up
+- conditions/ folder → checks done inside tasks
+
+**Rule:** If a file isn't referenced in `shopkeeper_ai.tres`, delete it.
 - Chase returns RUNNING while chasing → stays in chase
 - Chase returns SUCCESS after catch → selector succeeds → repeat restarts
 - Cooldown prevents immediate re-chase after SUCCESS
