@@ -183,15 +183,9 @@ func _update_debug_line(from: Vector3, to: Vector3) -> void:
 	if to == Vector3.ZERO:
 		return
 	
-	# Draw line from midpoint to both ends for better visibility
-	var midpoint := (from + to) / 2.0
-	
+	# Draw single line from NPC to target (at body height)
 	mesh.surface_begin(Mesh.PRIMITIVE_LINES)
-	# Line from midpoint to head (start)
-	mesh.surface_add_vertex(midpoint)
 	mesh.surface_add_vertex(from)
-	# Line from midpoint to target (end)
-	mesh.surface_add_vertex(midpoint)
 	mesh.surface_add_vertex(to)
 	mesh.surface_end()
 
