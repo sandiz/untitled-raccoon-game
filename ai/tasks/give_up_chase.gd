@@ -48,9 +48,10 @@ func _finish_give_up() -> void:
 	blackboard.set_var(&"last_known_position", Vector3.ZERO)
 	blackboard.set_var(&"search_time", 0.0)
 	
-	# Reset emotional state partially
+	# Reset emotional state partially - recover some stamina
 	var emo = blackboard.get_var(&"emotional_state")
 	if emo:
-		emo.exhaustion = maxf(emo.exhaustion - 0.2, 0.0)
+		emo.stamina = minf(emo.stamina + 20.0, 100.0)  # Recover 20 stamina
+		emo.on_chase_failed()  # Increases temper
 	
 	agent.current_state = "idle"

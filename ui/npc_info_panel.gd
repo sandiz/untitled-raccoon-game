@@ -28,11 +28,10 @@ var _dialogue_label: RichTextLabel
 var _state_label: Label
 var _stats_box: VBoxContainer
 
-# Stat bars
-var _alertness_bar: ProgressBar
-var _annoyance_bar: ProgressBar
-var _exhaustion_bar: ProgressBar
+# Stat bars (3-meter system)
+var _stamina_bar: ProgressBar
 var _suspicion_bar: ProgressBar
+var _temper_bar: ProgressBar
 
 
 # Raccoon info (hardcoded for now)
@@ -189,10 +188,9 @@ func _build_ui() -> void:
 	_stats_box.add_theme_constant_override("separation", _s(8))
 	_expanded_box.add_child(_stats_box)
 	
-	_alertness_bar = _create_stat_bar("👁 Alert", Color(1.0, 0.9, 0.2))
-	_annoyance_bar = _create_stat_bar("😤 Annoyed", Color(1.0, 0.4, 0.3))
-	_exhaustion_bar = _create_stat_bar("💤 Tired", Color(0.6, 0.5, 0.8))
-	_suspicion_bar = _create_stat_bar("🔍 Suspicious", Color(0.3, 0.7, 1.0))
+	_stamina_bar = _create_stat_bar("⚡ Stamina", Color(0.3, 0.8, 0.4))
+	_suspicion_bar = _create_stat_bar("👀 Suspicion", Color(0.9, 0.7, 0.2))
+	_temper_bar = _create_stat_bar("🔥 Temper", Color(1.0, 0.4, 0.3))
 
 
 func _create_stat_bar(label_text: String, color: Color) -> ProgressBar:
@@ -452,8 +450,7 @@ func _update_stats() -> void:
 	if not emo:
 		return
 	
-	# Only update emotion bars - state/dialogue comes from data store signal
-	_alertness_bar.value = emo.alertness
-	_annoyance_bar.value = emo.annoyance
-	_exhaustion_bar.value = emo.exhaustion
-	_suspicion_bar.value = emo.suspicion
+	# Update 3-meter bars (values are 0-100, bars expect 0-1)
+	_stamina_bar.value = emo.stamina / 100.0
+	_suspicion_bar.value = emo.suspicion / 100.0
+	_temper_bar.value = emo.temper / 100.0

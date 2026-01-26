@@ -86,12 +86,20 @@ func _ready() -> void:
 	if not personality:
 		personality = load("res://data/personalities/bernard.tres")
 	
-	# Apply personality stat modifiers to emotional state
+	# Apply personality stat modifiers to emotional state (support both old and new names)
 	if personality:
-		emotional_state.alertness_rate_modifier = personality.alertness_modifier
-		emotional_state.annoyance_rate_modifier = personality.annoyance_modifier
-		emotional_state.exhaustion_rate_modifier = personality.exhaustion_modifier
-		emotional_state.suspicion_rate_modifier = personality.suspicion_modifier
+		# Map old personality modifiers to new meter system
+		# stamina uses exhaustion_modifier (inverted effect)
+		if "exhaustion_modifier" in personality:
+			emotional_state.stamina_rate_modifier = personality.exhaustion_modifier
+		# suspicion uses alertness_modifier or suspicion_modifier
+		if "suspicion_modifier" in personality:
+			emotional_state.suspicion_rate_modifier = personality.suspicion_modifier
+		elif "alertness_modifier" in personality:
+			emotional_state.suspicion_rate_modifier = personality.alertness_modifier
+		# temper uses annoyance_modifier
+		if "annoyance_modifier" in personality:
+			emotional_state.temper_rate_modifier = personality.annoyance_modifier
 	
 	# Initialize systems
 	perception.setup(self)
@@ -227,6 +235,10 @@ func _connect_signals() -> void:
 # ═══════════════════════════════════════
 
 func _on_target_spotted(target_node: Node3D, spot_type: String) -> void:
+	# Ignore detection during startup grace period
+	if _startup_grace > 0:
+		return
+	
 	# Head tracks the target
 	if _head_look_at:
 		_head_look_at.look_at_node(target_node)

@@ -65,9 +65,9 @@ func _tick(delta: float) -> Status:
 			_on_lost_player()
 			return FAILURE
 	
-	# Update exhaustion
+	# Update stamina drain while chasing
 	if emo:
-		emo.exhaustion = minf(emo.exhaustion + exhaustion_rate * delta, 1.0)
+		emo.on_chasing(delta)  # Drains stamina
 		
 		# Give up if too exhausted
 		if emo.will_give_up:
@@ -92,7 +92,12 @@ func _tick(delta: float) -> Status:
 	var direction = (next_pos - agent.global_position).normalized()
 	direction.y = 0
 	
-	agent.velocity = direction * chase_speed
+	# Apply chase speed with temper multiplier
+	var speed = chase_speed
+	if emo:
+		speed *= emo.chase_speed_multiplier  # Angry = faster
+	
+	agent.velocity = direction * speed
 	agent.move_and_slide()
 	
 	# Face movement direction (use atan2 to match walk behavior)
