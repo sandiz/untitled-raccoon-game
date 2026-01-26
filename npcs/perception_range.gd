@@ -120,10 +120,7 @@ func _update_vision_outline_mesh() -> void:
 	var half_angle = deg_to_rad(vision_angle / 2.0)
 	var segments = 48  # High count for smooth arc
 	
-	# Start point is offset forward (1m ahead of feet)
-	var start_point = Vector3(0, 0, vision_start_offset)
-	
-	# Calculate left edge point at start offset
+	# Calculate left/right edge points at start offset (1m ahead of feet)
 	var left_start = Vector3(sin(-half_angle) * vision_start_offset, 0, cos(-half_angle) * vision_start_offset)
 	var right_start = Vector3(sin(half_angle) * vision_start_offset, 0, cos(half_angle) * vision_start_offset)
 	
