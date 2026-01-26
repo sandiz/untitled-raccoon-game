@@ -30,3 +30,7 @@ func _tick(_delta: float) -> Status:
 	if _frames_waited >= 2:
 		return SUCCESS
 	return RUNNING
+
+func _exit() -> void:
+	agent.velocity = Vector3.ZERO
+	agent.move_and_slide()

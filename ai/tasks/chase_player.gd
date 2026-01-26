@@ -1,3 +1,4 @@
+@tool
 extends BTAction
 ## Actively chases the player. Updates last_known_position and exhaustion.
 
@@ -11,6 +12,9 @@ var _chase_started: bool = false
 var _caught_player: bool = false
 var _celebration_timer: float = 0.0
 var _time_since_seen: float = 0.0  # Track how long since we saw player
+
+func _generate_name() -> String:
+	return "ChasePlayer (speed: %s)" % chase_speed
 
 func _enter() -> void:
 	_chase_started = false
@@ -169,6 +173,9 @@ func _on_lost_player() -> void:
 
 func _exit() -> void:
 	agent.velocity = Vector3.ZERO
+	agent.move_and_slide()
+	_chase_started = false
+	_caught_player = false
 
 func _get_player() -> Node3D:
 	var players = agent.get_tree().get_nodes_in_group("player")

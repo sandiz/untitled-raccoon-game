@@ -17,6 +17,7 @@ func _enter() -> void:
 	_elapsed = 0.0
 	# Ensure stopped while waiting
 	agent.velocity = Vector3.ZERO
+	agent.move_and_slide()
 
 func _tick(delta: float) -> Status:
 	# Keep velocity zeroed while waiting
@@ -33,3 +34,7 @@ func _tick(delta: float) -> Status:
 	if _elapsed >= _duration:
 		return SUCCESS
 	return RUNNING
+
+func _exit() -> void:
+	agent.velocity = Vector3.ZERO
+	agent.move_and_slide()
