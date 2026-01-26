@@ -1,7 +1,7 @@
 # Untitled Raccoon Game
 
 ## Current Focus
-**Visual Polish** - UI, day/night, outlines
+**Meter System Refactor** - Implementing 3-meter system (Stamina, Suspicion, Temper)
 
 ---
 
@@ -9,14 +9,16 @@
 
 - Player with WASD movement, jump, run, honk
 - Shopkeeper NPC with wander + chase behavior
-- Emotional state system (4 meters - considering simplifying to 3)
+- Emotional state system (4 meters → refactoring to 3)
 - Ghibli-style toon shading + outlines
-- Day/night cycle (10 min, 4 periods)
+- Day/night cycle (10 min, 4 periods) with distinct color palettes
 - Game speed controls (1-4 keys)
-- TOD clock widget (top-left, V to expand, shows speed/ratio in collapsed view)
-- NPC info panel (top-right, N to expand, starts collapsed, typewriter effect)
-- Speech bubble above NPC (status emoji, dark theme, synced via data store)
-- Shared widget architecture (BaseWidget base class, NPCDataStore for sync)
+- TOD clock widget (V to expand)
+- NPC info panel (N to expand)
+- Speech bubble above NPC (status emoji, dark theme)
+- Vision cone + hearing circle visualization
+- Head tracking (NPC looks at player when spotted)
+- Smooth camera with target switching
 
 ## Controls
 
@@ -26,10 +28,12 @@
 | Shift | Run |
 | Space | Jump |
 | E/Q | Honk |
-| V | Toggle TOD widget expand |
-| N | Toggle NPC info panel expand |
+| V | Toggle TOD widget / perception viz |
+| N | Toggle NPC info panel |
 | 1-4 | Game speed |
-| Scroll/Pinch | Camera zoom (max 1.8x) |
+| Scroll/Pinch | Camera zoom |
+| Right-drag | Camera rotate |
+| Click NPC | Select (camera follows) |
 
 ## What's Working
 
@@ -38,71 +42,81 @@
 | Wander loop | ✅ Done |
 | Chase + catch | ✅ Done |
 | Perception (120° FOV, 8m) | ✅ Done |
-| Emotional state system | ✅ Done |
+| Vision cone visualization | ✅ Done |
+| Hearing circle visualization | ✅ Done |
+| Head tracking | ✅ Done |
+| State-based cone colors | ✅ Done |
+| Emotional state system | ✅ Done (refactoring) |
 | Ghibli outline shader | ✅ Done |
 | Day/night cycle | ✅ Done |
-| Vision indicator (ground glow) | ✅ Done |
+| Morning/Afternoon distinction | ✅ Done |
 | Game speed controls | ✅ Done |
 | TOD clock widget | ✅ Done |
-| NPC info panel (fold/expand) | ✅ Done |
-| NPC portrait (rounded corners) | ✅ Done |
-| Pause functionality | ✅ Done |
-| Speech bubble (status emoji, dark) | ✅ Done |
-| Button focus release (all widgets) | ✅ Done |
-| Widget sync via NPCDataStore | ✅ Done |
-| BaseWidget shared styling | ✅ Done |
-| Speed options below 1x | ✅ Done |
+| NPC info panel | ✅ Done |
+| Speech bubble | ✅ Done |
+| Smooth camera follow | ✅ Done |
+| Camera target switching | ✅ Done |
+| Sleek notifications | ✅ Done |
 
-## Speech Bubble Features
+## 3-Meter System (Decided)
 
-- Dark translucent style (matches other widgets)
-- Status-based emoji (😌 idle, 👀 alert, 😠 chasing, etc.)
-- Tail flush with bubble body (no bottom border, renders behind)
-- Pop-in animation (TRANS_BACK bounce)
-- Typewriter text effect
-- Subtle bob animation
-- **Synced with NPC info panel** via NPCDataStore (single source of truth)
-- **Message priority system** ✅ High-prio messages (chasing, caught) stay on screen longer
+Replacing 4 overlapping meters with 3 clear ones:
 
-## Speed Options
+| Meter | Icon | Player Strategy | Effect |
+|-------|------|-----------------|--------|
+| **Stamina** | ⚡ | "Tire them out" | Low = gives up, must rest |
+| **Suspicion** | 👀 | "Stay hidden" | High = wider FOV, faster reactions |
+| **Temper** | 🔥 | "Don't push too hard" | High = faster, won't give up, remembers |
 
-Array-based speeds: `[0.1, 0.25, 0.5, 1.0, 2.0, 4.0]`
-Labels: `["⅒x", "¼x", "½x", "1x", "2x", "4x"]`
+### Why 3 Meters
+- Each meter = one clear player strategy
+- No overlap (unlike Alert/Suspicion in old system)
+- Creates emergent behavior combos
+- ~2 hour refactor, not a rewrite
 
-## Pending Decisions
+### Temper Value
+Temper creates **consequences that persist across encounters**:
+- First theft: calm chase, gives up easily
+- Fifth theft: FURIOUS, faster, searches longer, harder to escape
+- Enables "escalation" gameplay and viral "revenge chase" moments
 
-### Emotional Meters
-Current 4 meters (Alert, Annoyed, Tired, Suspicious) have overlap.
+See `plans/meters_design.md` and `plans/competitive_analysis.md` for full details.
 
-**Proposed 3-meter system:**
-| Meter | Drives | Player manipulates by |
-|-------|--------|----------------------|
-| ⚡ Energy | Chase duration, give up | Making them run |
-| 🔥 Agitation | Aggression, detection | Mischief, being spotted |
-| 👀 Awareness | FOV, reaction time | Distractions, hiding |
+## Competitive Position
 
-## Future: LLM Integration
+| Metric | Current | With 3 Meters | Full Features |
+|--------|---------|---------------|---------------|
+| Emergent gameplay | 3/10 | 6/10 | 8/10 |
+| Viral potential | 2/10 | 5/10 | 8/10 |
+| Unique vs UGG | 3/10 | 6/10 | 8/10 |
+
+Key differentiators vs Untitled Goose Game:
+- Dynamic meter combinations (not static NPC states)
+- Stamina-based chases (not boundary-based)
+- Temper persists (NPCs remember)
+- Gradual suspicion buildup (not binary detection)
+
+## Next Up
+
+| # | Feature | Type | Effort |
+|---|---------|------|--------|
+| 1 | **Implement 3-meter system** | Refactor | 2 hours |
+| 2 | Expressive NPC reactions | Polish | Medium |
+| 3 | Near-miss feedback | Polish | Low |
+| 4 | Items to steal/throw | Gameplay | Medium |
+| 5 | Search behavior (lost player) | BT | Medium |
+
+## Future
 
 | Feature | Notes |
 |---------|-------|
-| Narrator text generation | LLM picks contextual narrator lines |
-| Dialogue text generation | LLM picks NPC dialogue based on state/mood |
+| Multiple NPCs | Customer, pet with different detection |
+| Environment manipulation | Lights, distractions, traps |
+| Combo/style system | Reward chaining actions |
+| LLM narrator/dialogue | AI-generated contextual text |
 
-## Next Up (After Visual Polish)
+## Design Docs
 
-| # | Feature | Type |
-|---|---------|------|
-| 1 | Finalize meter system | Design |
-| 2 | LLM narrator/dialogue | AI/LLM |
-| 3 | Search behavior | BT |
-| 4 | Give up when exhausted | BT |
-| 5 | Item stealing detection | BT |
-
-## UI Style Guide
-
-- **Background:** `rgba(15, 15, 20, 0.92)` - Dark translucent
-- **Border:** `rgba(65, 65, 75, 0.9)` - Subtle gray
-- **Text:** `#F5F5F0` - Cream white
-- **Corners:** 10px radius (scaled)
-- **Font:** JetBrains Mono
-- **Scale:** 2.0x default for readability
+- `plans/meters_design.md` - 3-meter system specification
+- `plans/competitive_analysis.md` - UGG/Hitman comparison, virality factors
+- `plans/emotional_system.md` - Original 4-meter system (deprecated)

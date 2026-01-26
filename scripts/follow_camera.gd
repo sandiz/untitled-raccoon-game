@@ -1,31 +1,38 @@
 extends Camera3D
+## Stable isometric-style follow camera.
+## Follows raccoon by default, switches to NPC when selected.
+## Smooth transition when switching targets, no yaw/pitch/zoom changes.
 
 @export var target_path: NodePath
 @export var distance: float = 14.0
 @export var height: float = 12.0
-@export var look_height_offset: float = -2.0  # Look down more at target
-@export var smoothing: float = 5.0
+@export var look_height_offset: float = -2.0
 @export var zoom_speed: float = 0.5
 @export var min_zoom: float = 0.5
 @export var max_zoom: float = 1.4
 @export var zoom_smoothing: float = 8.0
 @export var rotate_speed: float = 0.005
 @export var rotate_smoothing: float = 8.0
+@export var follow_smoothing: float = 8.0
 
 var target: Node3D
-var _default_target: Node3D  # The raccoon/player
-var current_zoom: float = 0.7  # Start at comfortable default zoom
+var _default_target: Node3D
+var current_zoom: float = 0.7
 var target_zoom: float = 0.7
 var current_angle: float = 0.0
 var target_angle: float = 0.0
 var is_dragging: bool = false
+
+# Smoothed positions for stable camera
+var _smooth_target_pos: Vector3 = Vector3.ZERO
+var _initialized: bool = false
+
 
 func _ready() -> void:
 	if target_path:
 		target = get_node_or_null(target_path)
 	_default_target = target
 	
-	# Connect to NPC selection changes
 	call_deferred("_connect_to_data_store")
 
 
@@ -39,30 +46,17 @@ func _on_selection_changed(selected_ids: Array) -> void:
 	var new_target: Node3D = null
 	
 	if selected_ids.is_empty():
-		# No NPC selected - follow raccoon/player
 		new_target = _default_target
 	else:
-		# Follow selected NPC
 		var data_store = NPCDataStore.get_instance()
 		new_target = data_store.get_npc_node(selected_ids[0])
 	
-	if new_target and new_target != target:
-		# Calculate angle to maintain camera position relative to new target
-		var cam_pos = global_position
-		var new_target_pos = new_target.global_position
-		var dir_to_cam = cam_pos - new_target_pos
-		dir_to_cam.y = 0  # Ignore height for yaw calculation
-		
-		if dir_to_cam.length() > 0.1:
-			# Calculate the angle from target to camera
-			var new_angle = atan2(dir_to_cam.x, dir_to_cam.z)
-			target_angle = new_angle
-			current_angle = new_angle
-		
+	if new_target:
 		target = new_target
+		# Don't reset _smooth_target_pos - let it lerp naturally
+
 
 func _input(event: InputEvent) -> void:
-	# Mouse scroll wheel zoom
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
 			target_zoom = clamp(target_zoom - zoom_speed * 0.2, min_zoom, max_zoom)
@@ -71,29 +65,35 @@ func _input(event: InputEvent) -> void:
 		elif event.button_index == MOUSE_BUTTON_RIGHT or event.button_index == MOUSE_BUTTON_MIDDLE:
 			is_dragging = event.pressed
 	
-	# Mouse drag to rotate
 	if event is InputEventMouseMotion and is_dragging:
 		target_angle -= event.relative.x * rotate_speed
 	
-	# Touch pan to rotate (two finger swipe)
 	if event is InputEventPanGesture:
 		target_angle -= event.delta.x * rotate_speed * 10.0
 	
-	# Pinch to zoom
 	if event is InputEventMagnifyGesture:
 		target_zoom = clamp(target_zoom / event.factor, min_zoom, max_zoom)
+
 
 func _process(delta: float) -> void:
 	if not target:
 		return
 	
-	# Smooth zoom interpolation
+	# Initialize smooth position on first frame
+	if not _initialized:
+		_smooth_target_pos = target.global_position
+		_initialized = true
+	
+	# Smooth the target position (this handles target switching smoothly)
+	_smooth_target_pos = _smooth_target_pos.lerp(target.global_position, delta * follow_smoothing)
+	
+	# Smooth zoom
 	current_zoom = lerp(current_zoom, target_zoom, delta * zoom_smoothing)
 	
-	# Smooth rotation interpolation
+	# Smooth rotation
 	current_angle = lerp_angle(current_angle, target_angle, delta * rotate_smoothing)
 	
-	# Calculate orbital position
+	# Calculate camera position from smoothed target
 	var zoomed_distance = distance * current_zoom
 	var zoomed_height = height * current_zoom
 	
@@ -103,8 +103,9 @@ func _process(delta: float) -> void:
 		cos(current_angle) * zoomed_distance
 	)
 	
-	var target_pos = target.global_position + offset
-	global_position = global_position.lerp(target_pos, delta * smoothing)
+	# Camera follows the smoothed target position
+	global_position = _smooth_target_pos + offset
 	
-	# Always look at target (slightly below center to pitch camera down)
-	look_at(target.global_position + Vector3(0, look_height_offset, 0), Vector3.UP)
+	# Look at smoothed target position (not actual target - prevents pitch wobble)
+	look_at(_smooth_target_pos + Vector3(0, look_height_offset, 0), Vector3.UP)
+	rotation.z = 0
