@@ -2,8 +2,9 @@ class_name PerceptionRange
 extends Node3D
 ## Shows NPC vision/hearing range as ground indicators.
 ## Vision = cone in front, Hearing = full circle.
-## Toggle with V key.
+## Fades in on selection, fades out on deselection. Toggle with V key.
 
+@export var npc_id: String = ""  # Set by parent to identify which NPC this belongs to
 @export var vision_range: float = 10.0
 @export var vision_angle: float = 90.0  # Degrees, total arc
 @export var hearing_range: float = 10.0  # Same as vision
@@ -12,6 +13,7 @@ extends Node3D
 @export var vision_outline_color: Color = Color(0.1, 0.6, 0.2, 0.9)  # Strong green outline
 @export var hearing_color: Color = Color(0.6, 0.2, 0.7, 0.25)  # Vivid violet - contrasts with green
 @export var show_hearing: bool = true
+@export var fade_duration: float = 0.25  # How long fade takes
 
 # State colors - more saturated for daytime visibility
 const STATE_COLORS := {
@@ -35,14 +37,29 @@ const STATE_OUTLINE_COLORS := {
 var _vision_mesh: MeshInstance3D
 var _vision_outline: MeshInstance3D
 var _hearing_mesh: MeshInstance3D
-var _visible: bool = true
+var _visible: bool = true  # V key toggle
+var _is_selected: bool = false
+var _fade_tween: Tween
+var _current_alpha: float = 0.0  # Start hidden
+
+# Store target alphas for each material
+var _vision_target_alpha: float = 0.5
+var _outline_target_alpha: float = 0.9
+var _hearing_target_alpha: float = 0.25
 
 
 func _ready() -> void:
 	_create_hearing_circle()
 	_create_vision_cone()
 	_create_vision_outline()
-	_update_visibility()
+	
+	# Start fully transparent
+	_set_alpha(0.0)
+	
+	# Connect to selection changes
+	var data_store = NPCDataStore.get_instance()
+	if data_store:
+		data_store.selection_changed.connect(_on_selection_changed)
 
 
 func _input(event: InputEvent) -> void:
@@ -182,11 +199,51 @@ func _update_vision_cone_mesh() -> void:
 
 func _update_visibility() -> void:
 	if _vision_mesh:
-		_vision_mesh.visible = _visible
+		_vision_mesh.visible = _visible and _is_selected
 	if _vision_outline:
-		_vision_outline.visible = _visible
+		_vision_outline.visible = _visible and _is_selected
 	if _hearing_mesh:
-		_hearing_mesh.visible = _visible and show_hearing
+		_hearing_mesh.visible = _visible and show_hearing and _is_selected
+
+
+func _set_alpha(alpha: float) -> void:
+	_current_alpha = alpha
+	
+	if _vision_mesh and _vision_mesh.material_override:
+		var color = _vision_mesh.material_override.albedo_color
+		color.a = _vision_target_alpha * alpha
+		_vision_mesh.material_override.albedo_color = color
+	
+	if _vision_outline and _vision_outline.material_override:
+		var color = _vision_outline.material_override.albedo_color
+		color.a = _outline_target_alpha * alpha
+		_vision_outline.material_override.albedo_color = color
+	
+	if _hearing_mesh and _hearing_mesh.material_override:
+		var color = _hearing_mesh.material_override.albedo_color
+		color.a = _hearing_target_alpha * alpha
+		_hearing_mesh.material_override.albedo_color = color
+
+
+func _fade_to(target_alpha: float) -> void:
+	if _fade_tween:
+		_fade_tween.kill()
+	
+	_fade_tween = create_tween()
+	_fade_tween.tween_method(_set_alpha, _current_alpha, target_alpha, fade_duration)
+
+
+func _on_selection_changed(selected_ids: Array) -> void:
+	var was_selected = _is_selected
+	_is_selected = npc_id in selected_ids
+	
+	if _is_selected and not was_selected:
+		# Just selected - fade in
+		_update_visibility()
+		_fade_to(1.0)
+	elif not _is_selected and was_selected:
+		# Just deselected - fade out
+		_fade_to(0.0)
 
 
 func set_ranges(vision: float, hearing: float, angle: float = 90.0) -> void:
@@ -212,10 +269,15 @@ func set_state(state: String) -> void:
 	var fill_color = STATE_COLORS[state]
 	var outline_color = STATE_OUTLINE_COLORS[state]
 	
-	# Update vision cone fill
+	# Store target alphas from the state colors
+	_vision_target_alpha = fill_color.a
+	_outline_target_alpha = outline_color.a
+	
+	# Apply colors (alpha will be modulated by _current_alpha)
 	if _vision_mesh and _vision_mesh.material_override:
+		fill_color.a = _vision_target_alpha * _current_alpha
 		_vision_mesh.material_override.albedo_color = fill_color
 	
-	# Update vision cone outline
 	if _vision_outline and _vision_outline.material_override:
+		outline_color.a = _outline_target_alpha * _current_alpha
 		_vision_outline.material_override.albedo_color = outline_color

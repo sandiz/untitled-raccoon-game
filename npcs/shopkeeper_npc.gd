@@ -132,6 +132,8 @@ func _ready() -> void:
 	
 	# Get perception range visualization
 	_perception_range = get_node_or_null("PerceptionRange")
+	if _perception_range:
+		_perception_range.npc_id = npc_id  # Set npc_id for selection-based fade
 	
 	# Debug mode: disable BT
 	if debug_freeze_ai:
