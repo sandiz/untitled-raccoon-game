@@ -1,52 +1,95 @@
 # Claude Notes
 
-Project-specific gotchas and conventions to avoid repeating mistakes.
+Quick-start guide for AI agents working on this project. Read this first, then follow links for details.
+
+---
+
+## Project Overview
+
+**Untitled Raccoon Game** - A stealth/chaos game where you play as a raccoon stealing from a grumpy shopkeeper. Inspired by Untitled Goose Game but with dynamic emotional meters.
+
+**Engine:** Godot 4.5 with LimboAI for behavior trees
+
+---
+
+## Documentation Index
+
+### Current State & Roadmap
+| Doc | Purpose |
+|-----|---------|
+| `plans/progress.md` | **START HERE** - Current state, what's working, next steps |
+
+### Design Documents
+| Doc | Purpose |
+|-----|---------|
+| `plans/meters_design.md` | 3-meter emotional system (Stamina, Suspicion, Temper) |
+| `plans/emotional_system.md` | Emotional state architecture |
+| `plans/shopkeeper_ai.md` | Shopkeeper AI behavior design |
+| `plans/competitive_analysis.md` | Comparison with Untitled Goose Game |
+
+### Technical Guides
+| Doc | Purpose |
+|-----|---------|
+| `plans/limboai_bt_guide.md` | **IMPORTANT** - BT best practices and gotchas |
+| `plans/selection_system.md` | NPC selection and camera system |
+
+### UI/Visual Design
+| Doc | Purpose |
+|-----|---------|
+| `plans/visual.md` | Ghibli-style visual design |
+| `plans/ui_design.md` | UI architecture and components |
+| `plans/ui_features.md` | UI feature specifications |
 
 ---
 
 ## Directory Structure
 
 ```
-test-5/
-├── ai/                     # LimboAI behavior trees & tasks
-│   ├── tasks/              # BTAction/BTCondition scripts
-│   │   └── conditions/     # BTCondition checks
+untitled-raccoon-game/
+├── ai/                     # LimboAI behavior trees and tasks
+│   ├── tasks/              # BTAction scripts (chase, idle, move, etc)
 │   └── trees/              # .tres behavior tree resources
-│       └── subtrees/       # Reusable BT fragments
-├── data/                   # Data resources
-│   └── personalities/      # NPCPersonality .tres files
-├── debug/                  # Debug tools (F3 overlay, visualizers)
-├── items/                  # Item scenes
-├── npcs/                   # NPC scenes & scripts
-├── plans/                  # Design docs (visual.md, ui_features.md, etc)
-├── player/                 # Player scene, controller, animations
-├── scenes/                 # Main scene(s)
-├── scripts/                # Shared utility scripts
-├── shaders/                # .gdshader files + material .tres
-├── systems/                # Core game systems (emotional, perception, etc)
-├── tests/                  # Test scripts
-├── ui/                     # UI scenes & scripts
-├── CLAUDE.md               # This file - gotchas & conventions
-└── PROGRESS.md             # Current state & roadmap
+├── data/personalities/     # NPCPersonality .tres files
+├── items/                  # Stealable item scripts
+├── npcs/                   # NPC scenes and scripts (shopkeeper)
+├── plans/                  # Design docs (see index above)
+├── player/                 # Player controller and pickup system
+├── scenes/                 # Main game scene
+├── shaders/                # Toon shader, outline shader
+├── systems/                # Core systems (emotional, perception, etc)
+├── ui/                     # UI components (info panel, speech bubble)
+└── CLAUDE.md               # This file
 ```
 
 ---
 
-## Scene Setup
+## Essential Gotchas
 
-### Floor is at Y = 0
-- **NavigationRegion3D** transform should be `y = 0`
-- **Floor surface** is at `y = 0`
-- All characters (Player, NPCs) stand at `y = 0`
+### Animation Names
+Animation library has `_Loop` suffix in .tres but loads WITHOUT it:
+```gdscript
+anim_player.play("default/Idle")  # Not "default/Idle_Loop"
+```
 
-### Placing Objects on Ground
-Objects need Y position = **half their height** to sit flush:
+### Character Rotation
+Use `atan2(direction.x, direction.z)` - NOT `Basis.looking_at()` which flips 180 degrees:
+```gdscript
+var target_angle = atan2(direction.x, direction.z)
+agent.rotation.y = lerp_angle(agent.rotation.y, target_angle, delta * 10.0)
+```
 
-| Object Type | Formula | Example |
-|-------------|---------|---------|
-| Sphere | `y = radius` | radius 0.12 → y = 0.12 |
-| Cylinder | `y = height / 2` | height 0.3 → y = 0.15 |
-| Box | `y = height / 2` | height 0.25 → y = 0.125 |
+### BT Blackboard
+Access emotional_state via blackboard, not agent:
+```gdscript
+var emotional_state = blackboard.get_var(&"emotional_state")  # CORRECT
+```
+
+### Stopping Movement
+Always call move_and_slide() after setting velocity to zero:
+```gdscript
+agent.velocity = Vector3.ZERO
+agent.move_and_slide()  # Required to actually stop!
+```
 
 ### Collision Layers
 | Layer | Purpose |
@@ -54,88 +97,40 @@ Objects need Y position = **half their height** to sit flush:
 | 1 | Environment (walls, floor) |
 | 2 | NPCs |
 | 4 | Player |
-| 8 | Items |
+| 8 | Items (stealable) |
 
----
-
-## Animation Names
-Animation library `.tres` has names WITH `_Loop` suffix in resource_name, but when loaded via AnimationPlayer they appear **WITHOUT** the suffix.
-
-Access as:
-- `default/Idle` (not Idle_Loop)
-- `default/Walk` (not Walk_Loop)
-- `default/Sprint` (not Sprint_Loop)
-- `default/Jog_Fwd` (not Jog_Fwd_Loop)
-- `default/Celebration` (no suffix in .tres either)
-
-**To verify available animations at runtime:**
-```gdscript
-var anim: AnimationPlayer = get_node("AnimationPlayer")
-print(anim.get_animation_list())
-```
-
----
-
-## Common Gotchas
-
-1. **GameTime autoload** - Use `get_node_or_null("/root/GameTime")` not global reference
-2. **will_chase threshold** - Uses `>=` not `>` (suspicion adds exactly 0.3)
-3. **BT blackboard vs agent.get()** - Use `blackboard.get_var(&"emotional_state")` NOT `agent.get("emotional_state")`. The emotional_state is stored in blackboard by shopkeeper_npc.gd.
-4. **Perception (UGG-style)** - Single FOV cone only (120°, 8m). No peripheral vision. Detection only happens when target is inside the visible cone.
-5. **Character rotation** - Use `atan2(direction.x, direction.z)` for facing direction. Do NOT use `Basis.looking_at()` as it assumes -Z forward which flips the model 180°:
-   ```gdscript
-   var target_angle = atan2(direction.x, direction.z)
-   agent.rotation.y = lerp_angle(agent.rotation.y, target_angle, delta * 10.0)
-   ```
-6. **BT state transitions** - If a task has post-action state (like celebration after catch), check that state FIRST in `_tick()` before any guard conditions. Otherwise the guard (e.g., `will_chase`) may fail after state change and skip the post-action.
-7. **State vs Animation conflict** - `set_current_state()` triggers `_play_state_animation()`. Perception callbacks (like `_on_target_spotted`) can fire during BT tasks and override animations. Solution: Guard callbacks to skip state changes when in higher-priority states like "chasing":
-   ```gdscript
-   func _on_target_spotted(target, spot_type):
-       if current_state == "chasing":
-           return  # Don't downgrade from chase
-   ```
+### Floor is Y = 0
+All characters stand at Y = 0. Objects need y = height/2 to sit flush.
 
 ---
 
 ## Key Systems
 
-| System | Files | Notes |
-|--------|-------|-------|
-| Emotional State | `systems/npc_emotional_state.gd` | alertness, annoyance, exhaustion, suspicion |
-| Perception | `systems/npc_perception.gd` | 120° FOV, 8m range, sound detection |
-| Social | `systems/npc_social.gd` | NPC-to-NPC alerts |
+| System | File | Notes |
+|--------|------|-------|
+| Emotional State | `systems/npc_emotional_state.gd` | Stamina, Suspicion, Temper meters |
+| Perception | `systems/npc_perception.gd` | 90 deg FOV, 10m range, target_is_holding_item |
+| Shop Items | `systems/shop_item.gd` | Stealable items with is_held property |
+| Player Pickup | `player/player_controller.gd` | E key to pick up/drop |
 | Day/Night | `systems/day_night_cycle.gd` | 10 min cycle, 4 periods |
-| Game Speed | `systems/game_speed_manager.gd` | Keys 1-4 for 0.25x-4x |
-| Toon Shading | `shaders/toon.gdshader`, `outline.gdshader` | Ghibli style |
-| NPC Info Panel | `ui/npc_info_panel.gd` | Wildlife documentary style |
-| Vision Indicator | `npcs/vision_indicator.gd` | Ground glow on alert/chase |
+| NPC Data Store | `ui/npc_data_store.gd` | Centralized NPC state for UI |
 
 ---
 
-## Behavior Tree Architecture
+## Current Gameplay Flow
 
-### Current Working BT (Simplified)
 ```
-BTRepeat (forever)
-└── BTSelector
-    ├── chase_player   ← checks will_chase internally, catches at 1.5m
-    └── Seq_Wander     ← select → move → idle → wait
+Raccoon wanders -> Picks up item (E) -> Shopkeeper SEES theft ->
+Suspicion = 100 -> CHASE! -> Catch or Escape -> Cooldown -> Repeat
 ```
 
-**Key insight:** BTCondition scripts were not loading properly. Solution: put the will_chase check inside chase_player._tick() instead of using a separate BTCondition.
+**Key threshold:** Shopkeeper only chases when suspicion >= 70. Seeing raccoon WITH item triggers on_saw_stealing() which sets suspicion to 100.
 
-### BT Best Practices
-- **BTRepeat with times=0** wraps the root for infinite loop
-- **BTSelector** tries children in order until one succeeds
-- **Long-running tasks** should check abort conditions (like will_chase) internally since BTSelector doesn't re-evaluate during RUNNING
-- **Build incrementally** - test each step before adding complexity
+---
 
-### Future: Full Priority Structure
-```
-BTSelector [ROOT]
-├── [P1: CHASE]       ← guard: will_chase
-├── [P2: RESTORE]     ← guard: has_displaced_items
-├── [P3: INVESTIGATE] ← guard: has_sound
-├── [P4: TASK]        ← guard: has_active_task
-└── [P5: IDLE]        ← fallback
-```
+## For More Details
+
+1. **What's done/next?** -> `plans/progress.md`
+2. **BT issues?** -> `plans/limboai_bt_guide.md`
+3. **Meter system?** -> `plans/meters_design.md`
+4. **UI components?** -> `plans/ui_design.md`
