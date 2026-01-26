@@ -23,8 +23,13 @@ signal picked_up(item: ShopItem, by: Node3D)
 signal dropped(item: ShopItem, at: Vector3)
 signal knocked_over(item: ShopItem)
 
+## Computed property: is item currently held? (for player pickup system compatibility)
+var is_held: bool:
+	get: return state == ItemState.HELD_BY_PLAYER or state == ItemState.HELD_BY_NPC
+
 
 func _ready() -> void:
+	add_to_group("stealable_items")
 	if use_current_as_home:
 		home_position = global_position
 	
@@ -39,6 +44,11 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	# Visual feedback based on state
 	pass
+
+
+## Player pickup system compatibility - wrapper for pickup_by_player
+func pickup(new_holder: Node3D) -> void:
+	pickup_by_player(new_holder)
 
 
 ## Check if item is at its home position

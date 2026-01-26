@@ -117,9 +117,9 @@ var mood: String:
 			return "suspicious"
 		return "calm"
 
-## Should NPC chase? Need suspicion AND stamina
+## Should NPC chase? Need HIGH suspicion (caught stealing) AND stamina
 var will_chase: bool:
-	get: return suspicion >= SUSPICIOUS_THRESHOLD and stamina > EXHAUSTED_THRESHOLD
+	get: return suspicion >= HUNTING_THRESHOLD and stamina > EXHAUSTED_THRESHOLD
 
 ## Should NPC give up? Too tired
 var will_give_up: bool:

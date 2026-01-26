@@ -1,21 +1,32 @@
 extends CharacterBody3D
-## Raccoon - player's avatar. No direct control.
-## Player influences NPCs through possession/clicking.
+## Raccoon - player's avatar. Can pick up items to steal.
 
 signal possessed_npc(npc: Node3D)
 signal released_npc(npc: Node3D)
+signal item_picked_up(item: Node3D)
+signal item_dropped(item: Node3D)
 
 var _current_possessed: Node3D = null
 var _selection_ring: Node3D = null
 
+## Pickup system
+var held_item: Node3D = null  # StealableItem currently held
+var nearby_items: Array = []  # Items in pickup range
+@export var pickup_range: float = 1.5
+
 ## Debug: enable WASD movement for testing
-@export var debug_movement: bool = false
+@export var debug_movement: bool = true
 @export var debug_speed: float = 5.0
+
+## Pickup prompt
+var _pickup_prompt: Label3D = null
 
 
 func _ready() -> void:
 	add_to_group("player")
 	_setup_selection_ring()
+	_setup_pickup_area()
+	_setup_pickup_prompt()
 	
 	# Connect to NPC selection to show ring when no NPC selected
 	call_deferred("_connect_to_data_store")
@@ -29,6 +40,36 @@ func _setup_selection_ring() -> void:
 		_selection_ring.ring_color = Color(1.0, 1.0, 1.0, 0.9)
 		_selection_ring.ring_size = 1.5  # Smaller for raccoon
 		add_child(_selection_ring)
+
+
+func _setup_pickup_area() -> void:
+	var pickup_area = Area3D.new()
+	pickup_area.name = "PickupArea"
+	
+	var shape = CollisionShape3D.new()
+	var sphere = SphereShape3D.new()
+	sphere.radius = pickup_range
+	shape.shape = sphere
+	pickup_area.add_child(shape)
+	
+	# Only detect stealable items (layer 4)
+	pickup_area.collision_layer = 0
+	pickup_area.collision_mask = 8  # Layer 4
+	
+	pickup_area.area_entered.connect(_on_item_nearby)
+	pickup_area.area_exited.connect(_on_item_left)
+	add_child(pickup_area)
+
+
+func _setup_pickup_prompt() -> void:
+	_pickup_prompt = Label3D.new()
+	_pickup_prompt.text = "[E] Pick up"
+	_pickup_prompt.font_size = 48
+	_pickup_prompt.modulate = Color(1, 1, 1, 0.9)
+	_pickup_prompt.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_pickup_prompt.no_depth_test = true
+	_pickup_prompt.visible = false
+	add_child(_pickup_prompt)
 
 
 func _connect_to_data_store() -> void:
@@ -79,6 +120,113 @@ func release() -> void:
 		released_npc.emit(old)
 
 
+# ═══════════════════════════════════════
+# PICKUP SYSTEM
+# ═══════════════════════════════════════
+
+func is_holding_item() -> bool:
+	return held_item != null
+
+
+func get_held_item() -> Node3D:
+	return held_item
+
+
+func try_pickup() -> void:
+	if held_item:
+		return  # Already holding something
+	
+	# Find closest valid item
+	var closest: Node3D = null
+	var closest_dist: float = INF
+	
+	for item in nearby_items:
+		if not is_instance_valid(item):
+			continue
+		if item.is_held:
+			continue
+		var dist = global_position.distance_to(item.global_position)
+		if dist < closest_dist:
+			closest_dist = dist
+			closest = item
+	
+	if closest and closest.has_method("pickup"):
+		held_item = closest
+		closest.pickup(self)
+		item_picked_up.emit(held_item)
+		_update_pickup_prompt()
+
+
+func drop_item() -> void:
+	if not held_item:
+		return
+	
+	var drop_pos = global_position + (-global_transform.basis.z * 0.5)
+	if held_item.has_method("drop"):
+		held_item.drop(drop_pos)
+	
+	item_dropped.emit(held_item)
+	held_item = null
+	_update_pickup_prompt()
+
+
+func _on_item_nearby(area: Area3D) -> void:
+	if area.is_in_group("stealable_items"):
+		nearby_items.append(area)
+		_update_pickup_prompt()
+
+
+func _on_item_left(area: Area3D) -> void:
+	nearby_items.erase(area)
+	_update_pickup_prompt()
+
+
+func _update_pickup_prompt() -> void:
+	if not _pickup_prompt:
+		return
+	
+	if held_item:
+		_pickup_prompt.text = "[E] Drop"
+		_pickup_prompt.position = Vector3(0, 1.2, 0)
+		_pickup_prompt.visible = true
+	elif not nearby_items.is_empty():
+		# Find closest item for prompt position
+		var closest = _get_closest_item()
+		if closest:
+			_pickup_prompt.text = "[E] Pick up"
+			_pickup_prompt.global_position = closest.global_position + Vector3(0, 0.5, 0)
+			_pickup_prompt.visible = true
+		else:
+			_pickup_prompt.visible = false
+	else:
+		_pickup_prompt.visible = false
+
+
+func _get_closest_item() -> Node3D:
+	var closest: Node3D = null
+	var closest_dist: float = INF
+	for item in nearby_items:
+		if not is_instance_valid(item) or item.is_held:
+			continue
+		var dist = global_position.distance_to(item.global_position)
+		if dist < closest_dist:
+			closest_dist = dist
+			closest = item
+	return closest
+
+
+# ═══════════════════════════════════════
+# INPUT & PHYSICS
+# ═══════════════════════════════════════
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("interact"):
+		if held_item:
+			drop_item()
+		else:
+			try_pickup()
+
+
 func _physics_process(delta: float) -> void:
 	if not debug_movement:
 		return
@@ -98,6 +246,10 @@ func _physics_process(delta: float) -> void:
 		input_dir = input_dir.normalized()
 		velocity.x = input_dir.x * debug_speed
 		velocity.z = input_dir.z * debug_speed
+		
+		# Face movement direction
+		var target_angle = atan2(input_dir.x, input_dir.z)
+		rotation.y = lerp_angle(rotation.y, target_angle, 0.15)
 	else:
 		velocity.x = 0
 		velocity.z = 0

@@ -232,6 +232,11 @@ func _update_player_perception(delta: float) -> void:
 	var visibility = perception.check_target_visibility(_player)
 	if visibility.visible:
 		perception.process_visible_target(_player, visibility, delta)
+		
+		# Continuous theft detection: if we can see the player AND they're holding an item
+		# and we haven't already maxed out suspicion, react to the theft
+		if perception.target_is_holding_item and emotional_state.suspicion < 95.0:
+			emotional_state.on_saw_stealing()  # Max suspicion (100)
 
 # ═══════════════════════════════════════
 # SIGNAL CONNECTIONS
@@ -280,16 +285,29 @@ func _on_target_spotted(target_node: Node3D, spot_type: String) -> void:
 				set_current_state("alert")
 		return
 	
+	# Check if target is holding a stolen item
+	var target_holding_item = false
+	if target_node.has_method("is_holding_item"):
+		target_holding_item = target_node.is_holding_item()
+	
 	match spot_type:
 		"glimpse":
 			emotional_state.on_heard_noise()
 			set_current_state("suspicious")
 		"noticed":
-			emotional_state.on_saw_target()
-			set_current_state("alert")
+			if target_holding_item:
+				emotional_state.on_saw_stealing()  # Max suspicion (100) + temper boost
+				set_current_state("alert")
+			else:
+				emotional_state.on_saw_target()
+				set_current_state("alert")
 		"confirmed":
-			emotional_state.on_saw_target()
-			set_current_state("investigating")
+			if target_holding_item:
+				emotional_state.on_saw_stealing()  # Max suspicion (100) + temper boost
+				set_current_state("investigating")
+			else:
+				emotional_state.on_saw_target()
+				set_current_state("investigating")
 	
 	# Update blackboard for behavior tree
 	_update_blackboard("target", target_node)

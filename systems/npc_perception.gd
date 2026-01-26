@@ -259,6 +259,16 @@ var can_see_target: bool:
 			return false
 		return get_awareness(target) >= 0.6
 
+## Computed property: Is the visible target holding a stolen item?
+var target_is_holding_item: bool:
+	get:
+		var target = get_primary_target()
+		if not target or not can_see_target:
+			return false
+		if target.has_method("is_holding_item"):
+			return target.is_holding_item()
+		return false
+
 # ═══════════════════════════════════════
 # DEBUG INFO
 # ═══════════════════════════════════════
