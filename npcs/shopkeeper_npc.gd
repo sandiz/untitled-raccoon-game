@@ -144,8 +144,23 @@ func _ready() -> void:
 	_state_indicator.npc_id = npc_id  # Set npc_id for data store sync
 	add_child(_state_indicator)
 	
-	# Show initial idle dialogue
+	# Explicitly set initial idle state AFTER a frame to override any stale state
+	call_deferred("_set_initial_idle_state")
+
+
+func _set_initial_idle_state() -> void:
+	# Force idle state on startup (overrides any stale state)
+	current_state = "idle"
+	
+	# Reset emotional state to defaults
+	emotional_state.stamina = 100.0
+	emotional_state.suspicion = 10.0
+	emotional_state.temper = 0.0
+	
+	# Update UI
 	_update_state_indicator("idle")
+	if _data_store:
+		_data_store.update_npc_state(npc_id, "idle", current_dialogue)
 	
 
 func _exit_tree() -> void:
@@ -202,6 +217,10 @@ func _physics_process(delta: float) -> void:
 # ═══════════════════════════════════════
 
 func _update_player_perception(delta: float) -> void:
+	# Skip perception during startup grace period
+	if _startup_grace > 0:
+		return
+	
 	if not _player or not is_instance_valid(_player):
 		_player = get_tree().get_first_node_in_group("player")
 		if not _player:
@@ -372,20 +391,28 @@ func on_chase_started() -> void:
 	_try_play_animation(["default/Sprint_Loop", "default/Jog_Fwd_Loop"])
 	# Note: on_chasing(delta) should be called each frame during chase via _physics_process
 
+var _chase_end_handled: bool = false  # Guard against double celebration
+
 func on_chase_ended(success: bool) -> void:
+	# Prevent double-triggering celebration
+	if _chase_end_handled:
+		return
+	_chase_end_handled = true
+	
 	if success:
 		emotional_state.on_chase_success()
 		set_current_state("caught")
 		_try_play_animation(["default/Celebration", "default/Idle_Loop"])
 		social.signal_all_clear()
-		# After celebration, return to idle
-		await get_tree().create_timer(2.0).timeout
-		if current_state == "caught":
-			set_current_state("idle")
+		# Note: chase_player handles the 2s celebration wait before returning SUCCESS
+		# State will naturally transition when BT moves to wander/idle
 	else:
 		emotional_state.on_chase_failed()
 		set_current_state("frustrated")
 		_try_play_animation(["default/Idle_Tired_Loop", "default/Idle_Loop"])
+	
+	# Reset guard after handling complete
+	_chase_end_handled = false
 
 func on_returned_home() -> void:
 	emotional_state.on_returned_home()

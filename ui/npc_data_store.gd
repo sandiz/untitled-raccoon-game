@@ -53,15 +53,28 @@ const MAX_SELECTED: int = 3
 # NPC node references for raycasting
 var _npc_nodes: Dictionary = {}  # npc_id -> Node3D
 
+# Session tracking - detect game restarts
+var _session_frame: int = -1  # Frame when session started
+
 
 static func get_instance() -> NPCDataStore:
 	if _instance == null:
 		_instance = NPCDataStore.new()
+		_instance._session_frame = Engine.get_process_frames()
 		# Add to tree so _process runs for priority timing
 		if Engine.get_main_loop():
 			var root = Engine.get_main_loop().root
 			if root:
 				root.call_deferred("add_child", _instance)
+	else:
+		# Instance exists - check if this is a new game session
+		# New session = frame count reset to lower value than our recorded session frame
+		var current_frame = Engine.get_process_frames()
+		if current_frame < _instance._session_frame or _instance._session_frame < 0:
+			# Frame counter reset or uninitialized = new game session
+			print("[NPCDataStore] New session detected (frame %d < %d), resetting" % [current_frame, _instance._session_frame])
+			_instance.reset()
+			_instance._session_frame = current_frame
 	return _instance
 
 
@@ -153,8 +166,25 @@ func set_npc_metadata(npc_id: String, metadata: Dictionary) -> void:
 	_npc_data[npc_id].merge(metadata, true)
 
 
+## Reset all data (called on game restart or can be called manually)
+func reset() -> void:
+	_npc_data.clear()
+	_npc_priority.clear()
+	_selected_npc_ids.clear()
+	_npc_nodes.clear()
+
+
 ## Register NPC node for selection raycasting
+## Also clears any stale data for this NPC (handles game restart)
 func register_npc(npc_id: String, node: Node3D) -> void:
+	# Clear any stale data from previous game session
+	if _npc_data.has(npc_id):
+		_npc_data.erase(npc_id)
+	if _npc_priority.has(npc_id):
+		_npc_priority.erase(npc_id)
+	if npc_id in _selected_npc_ids:
+		_selected_npc_ids.erase(npc_id)
+	
 	_npc_nodes[npc_id] = node
 
 

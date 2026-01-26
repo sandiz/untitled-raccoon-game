@@ -23,7 +23,7 @@ func _tick(delta: float) -> Status:
 	return RUNNING
 
 func _start_give_up() -> void:
-	agent.current_state = "frustrated"
+	_set_state("frustrated")
 	agent.velocity = Vector3.ZERO
 	
 	# Play frustrated/tired animation
@@ -54,4 +54,12 @@ func _finish_give_up() -> void:
 		emo.stamina = minf(emo.stamina + 20.0, 100.0)  # Recover 20 stamina
 		emo.on_chase_failed()  # Increases temper
 	
-	agent.current_state = "idle"
+	_set_state("idle")
+
+
+## Helper to set state through proper method (updates data store for UI sync)
+func _set_state(state: String) -> void:
+	if agent.has_method("set_current_state"):
+		agent.set_current_state(state)
+	else:
+		agent.current_state = state

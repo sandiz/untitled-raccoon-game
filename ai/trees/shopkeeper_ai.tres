@@ -17,6 +17,16 @@ var/wander_target/type = 9
 var/wander_target/value = Vector3(0, 0, 0)
 var/wander_target/hint = 0
 var/wander_target/hint_string = ""
+var/chase_on_cooldown/name = &"chase_on_cooldown"
+var/chase_on_cooldown/type = 1
+var/chase_on_cooldown/value = false
+var/chase_on_cooldown/hint = 0
+var/chase_on_cooldown/hint_string = ""
+var/chase_cooldown_timer/name = &"chase_cooldown_timer"
+var/chase_cooldown_timer/type = 3
+var/chase_cooldown_timer/value = 0.0
+var/chase_cooldown_timer/hint = 0
+var/chase_cooldown_timer/hint_string = ""
 
 [sub_resource type="BTAction" id="Action_Chase"]
 script = ExtResource("chase")
@@ -24,6 +34,7 @@ script = ExtResource("chase")
 [sub_resource type="BTAction" id="Action_Select"]
 script = ExtResource("select")
 radius = 6.0
+min_distance = null
 
 [sub_resource type="BTAction" id="Action_Move"]
 script = ExtResource("move")

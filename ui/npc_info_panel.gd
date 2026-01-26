@@ -188,18 +188,25 @@ func _build_ui() -> void:
 	_stats_box.add_theme_constant_override("separation", _s(8))
 	_expanded_box.add_child(_stats_box)
 	
-	_stamina_bar = _create_stat_bar("⚡ Stamina", Color(0.3, 0.8, 0.4))
-	_suspicion_bar = _create_stat_bar("👀 Suspicion", Color(0.9, 0.7, 0.2))
-	_temper_bar = _create_stat_bar("🔥 Temper", Color(1.0, 0.4, 0.3))
+	_stamina_bar = _create_stat_bar("⚡", "Stamina", Color(0.3, 0.8, 0.4))
+	_suspicion_bar = _create_stat_bar("👀", "Suspicion", Color(0.9, 0.7, 0.2))
+	_temper_bar = _create_stat_bar("🔥", "Temper", Color(1.0, 0.4, 0.3))
 
 
-func _create_stat_bar(label_text: String, color: Color) -> ProgressBar:
+func _create_stat_bar(emoji: String, label_text: String, color: Color) -> ProgressBar:
 	var row = HBoxContainer.new()
-	row.add_theme_constant_override("separation", _s(10))
+	row.add_theme_constant_override("separation", _s(6))
 	_stats_box.add_child(row)
 	
+	# Emoji in fixed-width container for alignment
+	var emoji_label = _create_label(emoji, 13, SUBTITLE_COLOR)
+	emoji_label.custom_minimum_size.x = _s(24)
+	emoji_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	row.add_child(emoji_label)
+	
+	# Text label with fixed width
 	var label = _create_label(label_text, 13, SUBTITLE_COLOR)
-	label.custom_minimum_size.x = _s(100)
+	label.custom_minimum_size.x = _s(80)
 	row.add_child(label)
 	
 	var bar = ProgressBar.new()

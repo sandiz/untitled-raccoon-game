@@ -15,8 +15,14 @@ func _generate_name() -> String:
 func _enter() -> void:
 	_duration = randf_range(min_duration, max_duration)
 	_elapsed = 0.0
+	# Ensure stopped while waiting
+	agent.velocity = Vector3.ZERO
 
 func _tick(delta: float) -> Status:
+	# Keep velocity zeroed while waiting
+	agent.velocity = Vector3.ZERO
+	agent.move_and_slide()
+	
 	# Abort check for responsiveness (only if emotional_state exists in blackboard)
 	if blackboard.has_var(&"emotional_state"):
 		var emo = blackboard.get_var(&"emotional_state")

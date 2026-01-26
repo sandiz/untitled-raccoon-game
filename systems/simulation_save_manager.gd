@@ -83,6 +83,10 @@ func save_simulation(slot: String = AUTOSAVE_SLOT) -> bool:
 	if _is_saving:
 		return false
 	
+	# Don't save if any NPC is in an active state (chasing, caught, alerted, etc.)
+	if _any_npc_active():
+		return false
+	
 	_is_saving = true
 	
 	var save_data := {
@@ -179,6 +183,23 @@ func reset_simulation() -> void:
 ## Force an immediate autosave
 func force_autosave() -> void:
 	save_simulation(AUTOSAVE_SLOT)
+
+
+# ═══════════════════════════════════════
+# SAFETY CHECKS
+# ═══════════════════════════════════════
+
+## Returns true if any NPC is in an active (non-idle) state
+func _any_npc_active() -> bool:
+	var npcs = get_tree().get_nodes_in_group("npc")
+	const SAFE_STATES := ["idle", ""]
+	
+	for npc in npcs:
+		var state: String = npc.get("current_state") if npc.get("current_state") else "idle"
+		if state.to_lower() not in SAFE_STATES:
+			return true
+	
+	return false
 
 
 # ═══════════════════════════════════════

@@ -18,7 +18,7 @@ func _enter() -> void:
 	_search_points.clear()
 	
 	# Set state
-	agent.current_state = "searching"
+	_set_state("searching")
 	
 	# Play walk animation
 	var anim: AnimationPlayer = agent.get_node_or_null("AnimationPlayer")
@@ -115,7 +115,15 @@ func _do_check_nearby(_delta: float) -> Status:
 func _on_found_player() -> void:
 	# Reset search time since we found them
 	blackboard.set_var(&"search_time", 0.0)
-	agent.current_state = "chasing"
+	_set_state("chasing")
 
 func _exit() -> void:
 	agent.velocity = Vector3.ZERO
+
+
+## Helper to set state through proper method (updates data store for UI sync)
+func _set_state(state: String) -> void:
+	if agent.has_method("set_current_state"):
+		agent.set_current_state(state)
+	else:
+		agent.current_state = state

@@ -20,12 +20,26 @@ func _enter() -> void:
 	blackboard.set_var(&"search_time", 0.0)
 
 func _tick(delta: float) -> Status:
-	# If celebrating, wait for timer then SUCCESS
+	# If caught player, wait for celebration then SUCCESS
 	if _caught_player:
+		# Ensure NPC stays still during celebration
+		agent.velocity = Vector3.ZERO
+		agent.move_and_slide()
 		_celebration_timer += delta
 		if _celebration_timer >= celebration_time:
+			# Clear priority lock so idle can update UI
+			var npc_id = agent.get("npc_id")
+			if npc_id:
+				NPCDataStore.get_instance().clear_priority_lock(npc_id)
+			# Clear caught state before returning SUCCESS
+			if agent.has_method("set_current_state"):
+				agent.set_current_state("idle")
 			return SUCCESS
 		return RUNNING
+	
+	# Check cooldown - don't chase if we just caught player
+	if blackboard.get_var(&"chase_on_cooldown", false):
+		return FAILURE
 	
 	# Only check will_chase at START - once chasing, commit to it
 	var emo = blackboard.get_var(&"emotional_state")
@@ -79,6 +93,9 @@ func _tick(delta: float) -> Status:
 	
 	# Close enough - caught the player!
 	if distance < stop_distance:
+		# Set cooldown IMMEDIATELY to prevent double-catch
+		blackboard.set_var(&"chase_on_cooldown", true)
+		blackboard.set_var(&"chase_cooldown_timer", 5.0)
 		agent.velocity = Vector3.ZERO
 		_caught_player = true
 		_celebration_timer = 0.0
@@ -108,23 +125,12 @@ func _tick(delta: float) -> Status:
 	return RUNNING
 
 func _on_caught_player(_player: Node3D) -> void:
-	agent.current_state = "caught"
-	
-	# Play celebration/catch animation
-	var anim: AnimationPlayer = agent.get_node_or_null("AnimationPlayer")
-	if anim and anim.has_animation("default/Celebration"):
-		anim.play("default/Celebration")
-	
-	# Reset emotional state (satisfied)
-	var emo = blackboard.get_var(&"emotional_state")
-	if emo:
-		emo.on_chase_success()
-	
+	# Notify agent - it handles state, animation, and emotional feedback
 	if agent.has_method("on_chase_ended"):
 		agent.on_chase_ended(true)
 
 func _start_chase() -> void:
-	agent.current_state = "chasing"
+	_set_state("chasing")
 	
 	var anim: AnimationPlayer = agent.get_node_or_null("AnimationPlayer")
 	if anim and anim.has_animation("default/Sprint"):
@@ -134,7 +140,7 @@ func _start_chase() -> void:
 		agent.on_chase_started()
 
 func _give_up_chase() -> void:
-	agent.current_state = "frustrated"
+	_set_state("frustrated")
 	agent.velocity = Vector3.ZERO
 	
 	var anim: AnimationPlayer = agent.get_node_or_null("AnimationPlayer")
@@ -150,7 +156,7 @@ func _give_up_chase() -> void:
 
 func _on_lost_player() -> void:
 	# Player escaped - transition to search state
-	agent.current_state = "searching"
+	_set_state("searching")
 	agent.velocity = Vector3.ZERO
 	
 	var anim: AnimationPlayer = agent.get_node_or_null("AnimationPlayer")
@@ -167,3 +173,11 @@ func _exit() -> void:
 func _get_player() -> Node3D:
 	var players = agent.get_tree().get_nodes_in_group("player")
 	return players[0] if not players.is_empty() else null
+
+
+## Helper to set state through proper method (updates data store for UI sync)
+func _set_state(state: String) -> void:
+	if agent.has_method("set_current_state"):
+		agent.set_current_state(state)
+	else:
+		agent.current_state = state

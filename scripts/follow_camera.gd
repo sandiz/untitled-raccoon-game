@@ -17,8 +17,8 @@ extends Camera3D
 
 var target: Node3D
 var _default_target: Node3D
-var current_zoom: float = 0.7
-var target_zoom: float = 0.7
+var current_zoom: float = 1.0  # Default zoom to show full hearing range (10m)
+var target_zoom: float = 1.0
 var current_angle: float = 0.0
 var target_angle: float = 0.0
 var is_dragging: bool = false

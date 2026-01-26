@@ -45,8 +45,8 @@ var temper: float = 0.0:
 # ═══════════════════════════════════════
 
 const STAMINA_RECOVERY = 5.0       # Recovers ~20 sec from 0 to 100
-const STAMINA_DRAIN_CHASE = 8.0   # Drains while chasing
-const STAMINA_DRAIN_RUN = 4.0     # Drains while running/searching
+const STAMINA_DRAIN_CHASE = 15.0  # Drains while chasing (~6-7 sec to exhaust)
+const STAMINA_DRAIN_RUN = 8.0     # Drains while running/searching
 
 const SUSPICION_DECAY = 5.0       # Calms in ~20 sec from 100 to 0
 const TEMPER_DECAY = 1.5          # Slow decay - anger persists (~65 sec)

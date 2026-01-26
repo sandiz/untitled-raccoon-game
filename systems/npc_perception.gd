@@ -16,11 +16,11 @@ signal attention_changed(new_focus: Node3D)
 # CONFIGURATION - Forgiving values
 # ═══════════════════════════════════════
 
-## Vision cone angle (degrees) - wide for forgiving gameplay
-@export var fov_angle: float = 120.0
+## Vision cone angle (degrees) - matches visual indicator
+@export var fov_angle: float = 90.0
 
 ## Maximum sight distance
-@export var sight_range: float = 8.0
+@export var sight_range: float = 10.0
 
 ## How long it takes to fully notice something (seconds)
 @export var notice_time: float = 0.8

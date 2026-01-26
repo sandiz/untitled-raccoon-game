@@ -43,20 +43,13 @@ func _catch_player() -> void:
 	if player.has_method("drop_held_item"):
 		player.drop_held_item()
 	
-	# Play celebration animation
+	# Play celebration animation (only if on_chase_ended not available)
 	var anim: AnimationPlayer = agent.get_node_or_null("AnimationPlayer")
 	if anim and anim.has_animation("default/Celebration"):
 		anim.play("default/Celebration")
 	
 	# Update NPC state
-	if agent.has_method("set_state"):
-		agent.set_state("caught_player")
-	agent.current_state = "caught_player"
-	
-	# Emotional feedback
-	var emo = blackboard.get_var(&"emotional_state")
-	if emo and emo.has_method("add_event"):
-		emo.add_event("chase_success")
+	_set_state("caught_player")
 
 func _finish_catch() -> void:
 	# Set cooldown so NPC doesn't immediately chase again
@@ -71,8 +64,16 @@ func _finish_catch() -> void:
 	if anim and anim.has_animation("default/Idle_Loop"):
 		anim.play("default/Idle_Loop")
 	
-	agent.current_state = "idle"
+	_set_state("idle")
 
 func _get_player() -> Node3D:
 	var players = agent.get_tree().get_nodes_in_group("player")
 	return players[0] if not players.is_empty() else null
+
+
+## Helper to set state through proper method (updates data store for UI sync)
+func _set_state(state: String) -> void:
+	if agent.has_method("set_current_state"):
+		agent.set_current_state(state)
+	else:
+		agent.current_state = state

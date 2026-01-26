@@ -4,6 +4,7 @@ extends Node
 
 @export var skeleton_path: NodePath
 @export var max_angle: float = 70.0  # Max head turn in degrees
+@export var vision_cone_angle: float = 90.0  # Only track targets within this angle from forward
 @export var turn_speed: float = 8.0  # How fast head turns
 @export var show_debug_line: bool = true  # Toggle debug line visibility
 
@@ -100,32 +101,39 @@ func _process(delta: float) -> void:
 	var head_bone_pose := _skeleton.get_bone_global_pose(_head_idx)
 	var head_pos := _skeleton.to_global(head_bone_pose.origin)
 	
-	# Only show debug line when enabled and has target
-	var show_line := enabled and has_target
-	_update_debug_line(head_pos, look_pos if show_line else Vector3.ZERO)
+	# Check if target is within vision cone (don't track targets behind NPC)
+	var in_vision_cone := false
+	var angle := 0.0
+	var dir_to_target := Vector3.ZERO
+	if has_target:
+		dir_to_target = (look_pos - head_pos).normalized()
+		var parent_3d := get_parent() as Node3D
+		if parent_3d:
+			var npc_forward := parent_3d.global_transform.basis.z.normalized()
+			angle = rad_to_deg(npc_forward.angle_to(dir_to_target))
+			in_vision_cone = angle <= vision_cone_angle / 2.0
+	
+	# Only track if within vision cone
+	var should_track := enabled and has_target and in_vision_cone
+	
+	# Only show debug line when tracking
+	_update_debug_line(head_pos, look_pos if should_track else Vector3.ZERO)
 	
 	# Blend toward target or back to neutral
-	var target_blend := 1.0 if (enabled and has_target) else 0.0
+	var target_blend := 1.0 if should_track else 0.0
 	_current_blend = lerp(_current_blend, target_blend, delta * turn_speed)
 	
 	if _current_blend < 0.01:
 		_current_blend = 0.0
 		return
 	
+	if not should_track and _current_blend < 0.1:
+		return
+	
 	if not has_target:
 		return
 	
-	# Direction to target
-	var dir_to_target := (look_pos - head_pos).normalized()
-	
-	# Check angle from NPC forward (+Z is forward for this model)
-	var parent_3d := get_parent() as Node3D
-	if not parent_3d:
-		return
-	var npc_forward := parent_3d.global_transform.basis.z.normalized()
-	var angle := rad_to_deg(npc_forward.angle_to(dir_to_target))
-	
-	# Reduce effect if beyond max angle
+	# Reduce effect if near max angle (smooth falloff at edges)
 	var angle_factor := 1.0
 	if angle > max_angle:
 		angle_factor = clamp(1.0 - (angle - max_angle) / 30.0, 0.0, 1.0)
