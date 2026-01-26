@@ -105,9 +105,9 @@ func _process(delta: float) -> void:
 	var in_vision_cone := false
 	var angle := 0.0
 	var dir_to_target := Vector3.ZERO
+	var parent_3d := get_parent() as Node3D
 	if has_target:
 		dir_to_target = (look_pos - head_pos).normalized()
-		var parent_3d := get_parent() as Node3D
 		if parent_3d:
 			var npc_forward := parent_3d.global_transform.basis.z.normalized()
 			angle = rad_to_deg(npc_forward.angle_to(dir_to_target))
@@ -116,8 +116,16 @@ func _process(delta: float) -> void:
 	# Only track if within vision cone
 	var should_track := enabled and has_target and in_vision_cone
 	
+	# Debug line uses body midpoints (not head height) so it doesn't float
+	var npc_body_mid := parent_3d.global_position + Vector3(0, 0.9, 0) if parent_3d else head_pos
+	var target_body_mid := Vector3.ZERO
+	if target and is_instance_valid(target):
+		target_body_mid = target.global_position + Vector3(0, 0.9, 0)
+	elif target_position != Vector3.ZERO:
+		target_body_mid = target_position
+	
 	# Only show debug line when tracking
-	_update_debug_line(head_pos, look_pos if should_track else Vector3.ZERO)
+	_update_debug_line(npc_body_mid, target_body_mid if should_track else Vector3.ZERO)
 	
 	# Blend toward target or back to neutral
 	var target_blend := 1.0 if should_track else 0.0
