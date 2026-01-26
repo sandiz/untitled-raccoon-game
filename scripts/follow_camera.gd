@@ -14,8 +14,8 @@ extends Camera3D
 
 var target: Node3D
 var _default_target: Node3D  # The raccoon/player
-var current_zoom: float = 1.0
-var target_zoom: float = 1.0
+var current_zoom: float = 0.7  # Start at comfortable default zoom
+var target_zoom: float = 0.7
 var current_angle: float = 0.0
 var target_angle: float = 0.0
 var is_dragging: bool = false
@@ -41,13 +41,10 @@ func _on_selection_changed(selected_ids: Array) -> void:
 	if selected_ids.is_empty():
 		# No NPC selected - follow raccoon/player
 		new_target = _default_target
-		print("[Camera] Following player")
 	else:
 		# Follow selected NPC
 		var data_store = NPCDataStore.get_instance()
 		new_target = data_store.get_npc_node(selected_ids[0])
-		if new_target:
-			print("[Camera] Following NPC: ", selected_ids[0])
 	
 	if new_target and new_target != target:
 		# Calculate angle to maintain camera position relative to new target

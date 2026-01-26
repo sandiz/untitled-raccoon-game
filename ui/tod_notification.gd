@@ -23,6 +23,7 @@ var _queue: Array[Dictionary] = []
 var _is_showing: bool = false
 var _load_happened: bool = false  # Skip startup TOD if save was loaded
 var _suppress_external_tod: bool = true  # Start suppressed, enable after startup/load
+var _clock_widget: Control = null  # Reference to clock widget for positioning
 
 # Preset notification types
 const PRESETS := {
@@ -58,6 +59,7 @@ func _ready() -> void:
 	# Connect to systems
 	call_deferred("_connect_systems")
 	call_deferred("_show_startup_tod")
+	call_deferred("_find_clock_widget")
 
 
 ## Scale value by editor scale
@@ -80,29 +82,29 @@ func _build_ui() -> void:
 	_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_panel.grow_vertical = Control.GROW_DIRECTION_END
 	_panel.position.x = -_s(10)  # Right margin (matches clock widget)
-	_panel.position.y = _s(70)   # Below clock widget with space
+	_panel.position.y = _s(70)   # Default position, updated dynamically
 	add_child(_panel)
 	
 	# Content row
 	var hbox = HBoxContainer.new()
-	hbox.add_theme_constant_override("separation", _s(8))
+	hbox.add_theme_constant_override("separation", _s(5))
 	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	_panel.add_child(hbox)
 	
-	# Icon - use same font size as text for alignment
+	# Icon - compact
 	_icon_label = Label.new()
 	_icon_label.add_theme_font_override("font", _font)
-	_icon_label.add_theme_font_size_override("font_size", _s(14))
+	_icon_label.add_theme_font_size_override("font_size", _s(11))
 	_icon_label.add_theme_color_override("font_color", TEXT_COLOR)
 	_icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_icon_label.custom_minimum_size = Vector2(_s(18), _s(18))
+	_icon_label.custom_minimum_size = Vector2(_s(14), _s(14))
 	hbox.add_child(_icon_label)
 	
-	# Text
+	# Text - smaller
 	_text_label = Label.new()
 	_text_label.add_theme_font_override("font", _font)
-	_text_label.add_theme_font_size_override("font_size", _s(14))
+	_text_label.add_theme_font_size_override("font_size", _s(11))
 	_text_label.add_theme_color_override("font_color", TEXT_COLOR)
 	_text_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	hbox.add_child(_text_label)
@@ -111,12 +113,12 @@ func _build_ui() -> void:
 func _create_panel_style() -> StyleBoxFlat:
 	var style = StyleBoxFlat.new()
 	style.bg_color = PANEL_BG_COLOR
-	style.set_border_width_all(2)
+	style.set_border_width_all(1)
 	style.border_color = PANEL_BORDER_COLOR
-	style.set_corner_radius_all(_s(5))
-	style.set_content_margin_all(_s(8))
-	style.content_margin_left = _s(10)
-	style.content_margin_right = _s(10)
+	style.set_corner_radius_all(_s(4))
+	style.set_content_margin_all(_s(4))
+	style.content_margin_left = _s(5)
+	style.content_margin_right = _s(5)
 	return style
 
 
@@ -145,6 +147,52 @@ func _show_startup_tod() -> void:
 			_show(data.get("text", period), data["icon"], data["color"], data.get("duration", 3.0))
 	
 	_suppress_external_tod = false  # Allow normal TOD notifications now
+
+
+func _find_clock_widget() -> void:
+	# Find TODClockWidget sibling by looking for BaseWidget with _container
+	var parent = get_parent()
+	if parent:
+		for child in parent.get_children():
+			if child != self and child is BaseWidget:
+				_clock_widget = child
+				return
+		# Fallback: find by name pattern
+		for child in parent.get_children():
+			if child != self and (child.name.contains("Clock") or child.name.contains("TOD")):
+				_clock_widget = child
+				return
+
+
+func _process(_delta: float) -> void:
+	_update_position_below_clock()
+
+
+func _update_position_below_clock() -> void:
+	if not _panel:
+		return
+	
+	# Find clock widget if not cached
+	if not _clock_widget or not is_instance_valid(_clock_widget):
+		_find_clock_widget()
+	
+	# Position below clock widget's actual visible container
+	if _clock_widget and is_instance_valid(_clock_widget):
+		# Get the _container from the BaseWidget (the actual visible panel)
+		var container: Control = _clock_widget.get("_container") as Control
+		if container:
+			# Use global rect to get actual screen position regardless of anchors
+			var clock_rect = container.get_global_rect()
+			# Our panel is also anchored top-right, so position.y is offset from anchor
+			# Clock rect bottom is in global coords, convert to our local offset
+			_panel.position.y = clock_rect.end.y + _s(10) - global_position.y
+		else:
+			# Fallback: use widget size directly
+			var clock_bottom = _clock_widget.size.y
+			_panel.position.y = clock_bottom + _s(10)
+	else:
+		# Fallback position
+		_panel.position.y = _s(70)
 
 
 func _on_save_completed(_slot: String) -> void:

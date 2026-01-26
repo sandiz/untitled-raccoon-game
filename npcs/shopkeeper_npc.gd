@@ -43,8 +43,20 @@ var _state_indicator: NPCStateIndicator = null
 var _suspicious_timer: float = 0.0
 const SUSPICIOUS_TIMEOUT: float = 3.0  # Seconds before returning to idle
 
+## Startup grace period - ignore detection briefly
+var _startup_grace: float = 1.0
+
 ## Selection ring visual indicator
 var _selection_ring: SelectionRing
+
+## Head look at component
+var _head_look_at: HeadLookAt
+
+## Perception range visualization
+var _perception_range: PerceptionRange
+
+## Debug: disable AI to test head tracking
+@export var debug_freeze_ai: bool = false
 
 # ═══════════════════════════════════════
 # EXPORTS
@@ -107,6 +119,18 @@ func _ready() -> void:
 	_selection_ring = SelectionRing.new()
 	add_child(_selection_ring)
 	
+	# Get head look at component
+	_head_look_at = get_node_or_null("HeadLookAt")
+	
+	# Get perception range visualization
+	_perception_range = get_node_or_null("PerceptionRange")
+	
+	# Debug mode: disable BT
+	if debug_freeze_ai:
+		var bt_player = get_node_or_null("BTPlayer")
+		if bt_player:
+			bt_player.set_active(false)
+	
 	# Create floating state indicator
 	_state_indicator = NPCStateIndicator.new()
 	_state_indicator.npc_id = npc_id  # Set npc_id for data store sync
@@ -126,13 +150,24 @@ func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
 	
-	# Update all systems
-	emotional_state.update(delta)
-	perception.update(delta)
-	social.update(delta)
+	# Startup grace period - don't detect immediately
+	if _startup_grace > 0:
+		_startup_grace -= delta
+		return
 	
-	# Check for player visibility
+	# Always update perception (for detection feedback)
+	perception.update(delta)
+	
+	# Check for player visibility (triggers speech bubble)
 	_update_player_perception(delta)
+	
+	# Debug: freeze AI - skip behavior/movement but let perception handle head tracking
+	if debug_freeze_ai:
+		return
+	
+	# Update other systems (only when not frozen)
+	emotional_state.update(delta)
+	social.update(delta)
 	
 	# Update exhaustion if currently chasing
 	if current_state == "chasing":
@@ -191,12 +226,25 @@ func _connect_signals() -> void:
 # PERCEPTION CALLBACKS
 # ═══════════════════════════════════════
 
-func _on_target_spotted(target: Node3D, spot_type: String) -> void:
+func _on_target_spotted(target_node: Node3D, spot_type: String) -> void:
+	# Head tracks the target
+	if _head_look_at:
+		_head_look_at.look_at_node(target_node)
+	
 	# Don't downgrade from chasing state
 	if current_state == "chasing":
 		# Just update blackboard, don't change state or animation
-		_update_blackboard("target", target)
-		_update_blackboard("target_last_position", target.global_position)
+		_update_blackboard("target", target_node)
+		_update_blackboard("target_last_position", target_node.global_position)
+		return
+	
+	# When frozen, cap at alert (no action states)
+	if debug_freeze_ai:
+		match spot_type:
+			"glimpse":
+				set_current_state("suspicious")
+			_:
+				set_current_state("alert")
 		return
 	
 	match spot_type:
@@ -211,14 +259,22 @@ func _on_target_spotted(target: Node3D, spot_type: String) -> void:
 			set_current_state("investigating")
 	
 	# Update blackboard for behavior tree
-	_update_blackboard("target", target)
-	_update_blackboard("target_last_position", target.global_position)
+	_update_blackboard("target", target_node)
+	_update_blackboard("target_last_position", target_node.global_position)
 
 func _on_target_lost(_target: Node3D) -> void:
 	emotional_state.on_target_lost()
 	_update_blackboard("target", null)
+	
+	# Stop tracking with head (will smoothly return to neutral)
+	if _head_look_at:
+		_head_look_at.clear_target()
 
 func _on_sound_heard(source_position: Vector3, sound_type: String, loudness: float) -> void:
+	# Head turns toward sound
+	if _head_look_at:
+		_head_look_at.look_at_position(source_position)
+	
 	# Don't interrupt chase with investigation
 	if current_state == "chasing":
 		return
@@ -323,6 +379,10 @@ func on_returned_home() -> void:
 	emotional_state.on_returned_home()
 	set_current_state("idle")
 	_try_play_animation(["default/Idle_Loop", "default/Idle"])
+	
+	# Clear head tracking when back to idle
+	if _head_look_at:
+		_head_look_at.clear_target()
 
 func on_item_recovered() -> void:
 	emotional_state.on_item_recovered()
@@ -336,10 +396,22 @@ func set_current_state(state: String) -> void:
 	if state == "suspicious":
 		_suspicious_timer = 0.0
 	
+	# Disable head tracking during chase (causes mesh deformation)
+	if _head_look_at:
+		if state == "chasing":
+			_head_look_at.clear_target()
+			_head_look_at.enabled = false
+		elif old_state == "chasing":
+			_head_look_at.enabled = true
+	
 	# Play animation based on new state
 	if state != old_state:
 		_play_state_animation(state)
 		_update_state_indicator(state)
+		
+		# Update perception range color
+		if _perception_range:
+			_perception_range.set_state(state)
 
 func _update_state_indicator(state: String) -> void:
 	# Get dialogue text from personality and store it

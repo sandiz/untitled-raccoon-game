@@ -25,8 +25,8 @@ const DEFAULT_SETTINGS_PATH := "res://systems/default_tod_settings.tres"
 
 # Fog colors per period
 const FOG_COLORS := {
-	"morning": Color(0.85, 0.75, 0.65),   # Warm peachy
-	"afternoon": Color(0.7, 0.78, 0.65),  # Soft green
+	"morning": Color(0.9, 0.75, 0.55),    # Golden sunrise haze
+	"afternoon": Color(0.85, 0.88, 0.92), # Clear bright blue-white
 	"evening": Color(0.75, 0.55, 0.5),    # Warm coral
 	"night": Color(0.25, 0.3, 0.4),       # Cool blue
 }
@@ -46,10 +46,7 @@ func _ready() -> void:
 		# Start at 9 AM (0.125 normalized: 0.125 * 24 + 6 = 9)
 		_current_time = 0.125 * settings.cycle_duration
 		_update_lighting()
-		# Debug output
-		print("[DayNightCycle] Ready - Period: ", PERIOD_NAMES[_current_period])
-		print("[DayNightCycle] DirectionalLight: ", directional_light)
-		print("[DayNightCycle] WorldEnvironment: ", world_environment)
+
 	
 	# Cache materials after other scripts have run (use timer to ensure GhibliShaderApplier finishes)
 	get_tree().create_timer(0.1).timeout.connect(_cache_shader_materials)
@@ -258,7 +255,7 @@ func _cache_shader_materials() -> void:
 	if scene_root:
 		_find_shader_materials_recursive(scene_root)
 	_materials_cached = true
-	print("[DayNightCycle] Cached ", _cached_materials.size(), " shader materials")
+
 	
 	# Apply current brightness immediately
 	var s = _get_period_settings(_current_period)
@@ -274,14 +271,13 @@ func _find_shader_materials_recursive(node: Node) -> void:
 			var mat = mesh_instance.get_surface_override_material(i)
 			if mat is ShaderMaterial and mat not in _cached_materials:
 				_cached_materials.append(mat)
-				print("[DayNightCycle] Found material on: ", node.name, " (override)")
+
 		# Check mesh materials
 		if mesh_instance.mesh:
 			for i in range(mesh_instance.mesh.get_surface_count()):
 				var mat = mesh_instance.mesh.surface_get_material(i)
 				if mat is ShaderMaterial and mat not in _cached_materials:
 					_cached_materials.append(mat)
-					print("[DayNightCycle] Found material on: ", node.name, " (mesh)")
 	
 	for child in node.get_children():
 		_find_shader_materials_recursive(child)

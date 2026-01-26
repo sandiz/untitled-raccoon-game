@@ -58,19 +58,16 @@ func _input(event: InputEvent) -> void:
 		match event.keycode:
 			KEY_F5:
 				# Quick save
-				print("[SimSave] F5 - Saving...")
 				force_autosave()
 			KEY_F9:
 				# Quick load (resume)
-				print("[SimSave] F9 - Loading...")
 				if has_save(AUTOSAVE_SLOT):
 					load_simulation(AUTOSAVE_SLOT)
 				else:
-					print("[SimSave] No save to load")
+					pass  # No save to load
 			KEY_R:
 				# Reset simulation (Shift+R to avoid accidental reset)
 				if event.shift_pressed:
-					print("[SimSave] Shift+R - Resetting...")
 					reset_simulation()
 
 
@@ -108,7 +105,7 @@ func save_simulation(slot: String = AUTOSAVE_SLOT) -> bool:
 	
 	_is_saving = false
 	save_completed.emit(slot)
-	print("[SimSave] Saved to: ", slot)
+
 	return true
 
 
@@ -146,7 +143,7 @@ func load_simulation(slot: String = AUTOSAVE_SLOT) -> bool:
 	_restore_camera_data(save_data.get("camera", {}))
 	
 	load_completed.emit(slot)
-	print("[SimSave] Loaded from: ", slot)
+
 	return true
 
 

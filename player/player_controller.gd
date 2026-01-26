@@ -8,6 +8,10 @@ signal released_npc(npc: Node3D)
 var _current_possessed: Node3D = null
 var _selection_ring: Node3D = null
 
+## Debug: enable WASD movement for testing
+@export var debug_movement: bool = false
+@export var debug_speed: float = 5.0
+
 
 func _ready() -> void:
 	add_to_group("player")
@@ -73,3 +77,33 @@ func release() -> void:
 		var old = _current_possessed
 		_current_possessed = null
 		released_npc.emit(old)
+
+
+func _physics_process(delta: float) -> void:
+	if not debug_movement:
+		return
+	
+	# Simple WASD movement for testing
+	var input_dir = Vector3.ZERO
+	if Input.is_key_pressed(KEY_W):
+		input_dir.z -= 1
+	if Input.is_key_pressed(KEY_S):
+		input_dir.z += 1
+	if Input.is_key_pressed(KEY_A):
+		input_dir.x -= 1
+	if Input.is_key_pressed(KEY_D):
+		input_dir.x += 1
+	
+	if input_dir != Vector3.ZERO:
+		input_dir = input_dir.normalized()
+		velocity.x = input_dir.x * debug_speed
+		velocity.z = input_dir.z * debug_speed
+	else:
+		velocity.x = 0
+		velocity.z = 0
+	
+	# Gravity
+	if not is_on_floor():
+		velocity.y -= 9.8 * delta
+	
+	move_and_slide()
