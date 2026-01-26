@@ -75,6 +75,11 @@ func _tick(delta: float) -> Status:
 			agent.velocity = Vector3.ZERO  # Just rotate, don't move yet
 		
 		agent.move_and_slide()
+	else:
+		# No nav agent - just stop
+		agent.velocity = Vector3.ZERO
+		agent.move_and_slide()
+		return SUCCESS
 	
 	return RUNNING
 
