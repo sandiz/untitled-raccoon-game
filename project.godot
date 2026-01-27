@@ -11,13 +11,13 @@ config_version=5
 [application]
 
 config/name="Untitled Raccoon Game"
+config/tags=PackedStringArray("test")
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.5", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
 
-GameTime="*res://systems/game_time.gd"
 Supabase="*res://addons/supabase/Supabase/supabase.gd"
 
 [editor_plugins]

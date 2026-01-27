@@ -105,6 +105,29 @@ extends BaseNPC  # NOT CharacterBody3D!
 
 **Why?** Calling `move_and_slide()` multiple times per frame causes physics instability and sliding.
 
+### No Autoloads - Use Static Singletons
+**NEVER use Godot autoloads** - they tie code to Godot's project settings and make testing harder.
+
+Use the static singleton pattern instead:
+```gdscript
+class_name GameTime
+extends Node
+
+static var _instance: GameTime = null
+
+static func get_instance() -> GameTime:
+    if _instance == null:
+        _instance = GameTime.new()
+        # Add to tree so _process runs
+        if Engine.get_main_loop():
+            Engine.get_main_loop().root.call_deferred("add_child", _instance)
+    return _instance
+```
+
+**Usage:** `GameTime.get_instance().game_hour`
+
+**Examples:** `GameTime`, `NPCDataStore`
+
 ### Collision Layers
 | Layer | Purpose |
 |-------|---------|
@@ -127,7 +150,8 @@ All characters stand at Y = 0. Objects need y = height/2 to sit flush.
 | Shop Items | `systems/shop_item.gd` | Stealable items with is_held property |
 | Player Pickup | `player/player_controller.gd` | E key to pick up/drop |
 | Day/Night | `systems/day_night_cycle.gd` | 10 min cycle, 4 periods |
-| NPC Data Store | `ui/npc_data_store.gd` | Centralized NPC state for UI |
+| Game Time | `systems/game_time.gd` | Static singleton - `GameTime.get_instance()` |
+| NPC Data Store | `ui/npc_data_store.gd` | Static singleton - `NPCDataStore.get_instance()` |
 
 ---
 

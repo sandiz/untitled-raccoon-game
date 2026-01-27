@@ -1,15 +1,21 @@
+class_name GameTime
 extends Node
-## Game Time System
+## Game Time System - uses static singleton pattern (no autoload)
 ## Manages day/night cycle with compressed game time.
 ## 1 real second = 1 game minute (adjustable via time_scale)
+##
+## Usage: GameTime.get_instance().game_hour
+
+# Static instance (lazy initialized)
+static var _instance: GameTime = null
 
 signal time_changed(hour: int, minute: int)
 signal period_changed(period: String)
 
 # Time scale: game seconds per real second
-@export var time_scale: float = 60.0
+var time_scale: float = 60.0
 # Starting hour (0-23)
-@export var start_hour: int = 8
+var start_hour: int = 8
 
 # Internal time tracking (seconds since midnight)
 var game_time: float = 0.0
@@ -18,6 +24,43 @@ var paused: bool = false
 # Cached values
 var _last_hour: int = -1
 var _last_period: String = ""
+
+# Session tracking - detect game restarts
+var _session_frame: int = -1
+
+
+static func get_instance() -> GameTime:
+	if _instance == null:
+		_instance = GameTime.new()
+		_instance._session_frame = Engine.get_process_frames()
+		_instance._initialize()
+		# Add to tree so _process runs
+		if Engine.get_main_loop():
+			var root = Engine.get_main_loop().root
+			if root:
+				root.call_deferred("add_child", _instance)
+	else:
+		# Check if this is a new game session
+		var current_frame = Engine.get_process_frames()
+		if current_frame < _instance._session_frame or _instance._session_frame < 0:
+			print("[GameTime] New session detected, resetting")
+			_instance.reset()
+			_instance._session_frame = current_frame
+	return _instance
+
+
+func _initialize() -> void:
+	game_time = start_hour * 3600.0
+	_last_hour = game_hour
+	_last_period = time_of_day
+
+
+func reset() -> void:
+	game_time = start_hour * 3600.0
+	paused = false
+	_last_hour = game_hour
+	_last_period = time_of_day
+
 
 # ═══════════════════════════════════════
 # COMPUTED PROPERTIES
@@ -73,11 +116,6 @@ func is_lunch_time() -> bool:
 # ═══════════════════════════════════════
 # LIFECYCLE
 # ═══════════════════════════════════════
-
-func _ready() -> void:
-	game_time = start_hour * 3600.0
-	_last_hour = game_hour
-	_last_period = time_of_day
 
 func _process(delta: float) -> void:
 	if paused:

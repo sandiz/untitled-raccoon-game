@@ -1,7 +1,8 @@
 class_name SimulationSaveManager
 extends Node
 ## Auto-saves simulation state periodically. Singleton pattern (not autoload).
-## Saves: time of day, NPC positions/states/emotions, camera state.
+## Saves: time of day, NPC positions, camera state.
+## NOTE: Emotional state is NOT restored - each session starts calm.
 
 signal save_completed(slot: String)
 signal load_completed(slot: String)
@@ -11,7 +12,7 @@ static var _instance: SimulationSaveManager = null
 
 const SAVE_DIR := "user://saves/"
 const AUTOSAVE_SLOT := "autosave"
-const SAVE_VERSION := 1
+const SAVE_VERSION := 2  # v2: emotional state no longer restored
 
 ## Auto-save interval in seconds
 @export var autosave_interval: float = 30.0
@@ -216,11 +217,19 @@ func force_autosave() -> void:
 func _any_npc_active() -> bool:
 	var npcs = get_tree().get_nodes_in_group("npc")
 	const SAFE_STATES := ["idle", ""]
+	const MAX_SAFE_ALERTNESS := 0.3  # Don't save if any NPC is too alert
 	
 	for npc in npcs:
 		var state: String = npc.get("current_state") if npc.get("current_state") else "idle"
 		if state.to_lower() not in SAFE_STATES:
 			return true
+		
+		# Also check emotional state - don't save if NPC is alert
+		var emotional_state = npc.get("emotional_state")
+		if emotional_state:
+			var alertness = emotional_state.get("alertness") if emotional_state.get("alertness") else 0.0
+			if alertness > MAX_SAFE_ALERTNESS:
+				return true
 	
 	return false
 
@@ -307,16 +316,11 @@ func _restore_npc_data(npc_data: Dictionary) -> void:
 		if data.has("state") and data.has("dialogue"):
 			var store = NPCDataStore.get_instance()
 			store.clear_priority_lock(npc_id)
-			store.update_npc_state(npc_id, data["state"], data["dialogue"])
+			# Always restore to idle state - emotional state starts fresh
+			store.update_npc_state(npc_id, "idle", data["dialogue"])
 		
-		# Restore emotional state
-		if data.has("emotions") and npc.get("emotional_state"):
-			var emotions: Dictionary = data["emotions"]
-			var es = npc.emotional_state
-			es.alertness = emotions.get("alertness", 0.0)
-			es.annoyance = emotions.get("annoyance", 0.0)
-			es.exhaustion = emotions.get("exhaustion", 0.0)
-			es.suspicion = emotions.get("suspicion", 0.0)
+		# NOTE: Emotional state is NOT restored - each session starts calm
+		# This prevents confusing behavior like instant-chase on load
 
 
 func _restore_camera_data(camera_data: Dictionary) -> void:

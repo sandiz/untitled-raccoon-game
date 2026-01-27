@@ -236,9 +236,10 @@ func _exit_tree() -> void:
 
 ## Override BaseNPC's physics process for shopkeeper-specific behavior
 func _npc_physics_process(delta: float) -> void:
-	# Startup grace period - don't detect immediately
+	# Startup grace period - don't detect or move
 	if _startup_grace > 0:
 		_startup_grace -= delta
+		velocity = Vector3.ZERO  # Prevent any movement during grace period
 		return
 	
 	# Always update perception (for detection feedback)
@@ -362,10 +363,9 @@ func _on_target_spotted(target_node: Node3D, spot_type: String) -> void:
 		"confirmed":
 			if target_holding_item:
 				emotional_state.on_saw_stealing()  # Max suspicion (100) + temper boost
-				set_current_state("investigating")
-			else:
-				emotional_state.on_saw_target()
-				set_current_state("investigating")
+			# Don't add extra suspicion for confirmed if not stealing
+			# (suspicion was already added at "noticed")
+			set_current_state("investigating")
 	
 	# Update blackboard for behavior tree
 	_update_blackboard("target", target_node)

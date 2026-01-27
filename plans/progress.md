@@ -116,7 +116,8 @@ ai/
     └── shopkeeper_ai.tres
 
 npcs/
-├── shopkeeper_npc.gd      # Main NPC controller
+├── base_npc.gd            # Base class - handles move_and_slide() once per frame
+├── shopkeeper_npc.gd      # Main NPC controller (extends BaseNPC)
 ├── shopkeeper.tscn
 ├── head_look_at.gd        # Head tracking + debug line
 └── perception_range.gd    # Vision/hearing visualization
@@ -126,7 +127,8 @@ systems/
 ├── npc_perception.gd      # Sight/hearing + target_is_holding_item
 ├── npc_personality.gd     # Data-driven traits
 ├── shop_item.gd           # Stealable items (is_held, pickup)
-└── simulation_save_manager.gd
+├── game_time.gd           # Static singleton (NOT autoload)
+└── simulation_save_manager.gd  # v2: emotional state NOT restored
 
 items/
 └── stealable_item.gd      # Base class (alternative to ShopItem)
@@ -177,3 +179,38 @@ Raccoon + Item → Shopkeeper sees → on_saw_stealing() → Suspicion 100 → C
 3. **Audio**: Footsteps, alert sounds, honk
 4. **Polish**: More NPC dialogue variety, catch animation
 5. **Juice**: Screen shake on catch, particle effects
+
+---
+
+## NPC Movement Architecture ✅
+
+### BaseNPC Class
+All NPCs extend `BaseNPC` which handles movement properly:
+- `move_and_slide()` called ONCE per frame in `_physics_process`
+- BT tasks only SET velocity, never call `move_and_slide()`
+- Gravity applied automatically when not on floor
+- Prevents sliding bugs from multiple `move_and_slide()` calls
+
+### Shopkeeper Override
+- `_npc_physics_process()` for perception/emotional updates
+- Startup grace period (1s) - no detection, velocity zeroed
+- Debug overlay available via `debug_show_velocity` export
+
+---
+
+## Simulation Save System ✅ (v2)
+
+### What's Saved
+- Time of day
+- NPC positions and rotations
+- Camera position
+- NPC dialogue
+
+### What's NOT Restored (by design)
+- Emotional state (suspicion, temper, stamina)
+- Each session starts with calm NPCs
+
+### Safety Checks
+- Won't autosave if any NPC is in active state (chasing, alerted)
+- Won't autosave if any NPC has alertness > 0.3
+- F5: Quick save, F9: Quick load, Shift+R: Reset
