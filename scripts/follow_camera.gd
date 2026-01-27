@@ -11,14 +11,16 @@ extends Camera3D
 @export var min_zoom: float = 0.5
 @export var max_zoom: float = 1.4
 @export var zoom_smoothing: float = 8.0
+@export var player_default_zoom: float = 0.7  ## Zoom when following player (smaller unit)
+@export var npc_default_zoom: float = 1.0  ## Zoom when following NPC
 @export var rotate_speed: float = 0.005
 @export var rotate_smoothing: float = 8.0
 @export var follow_smoothing: float = 8.0
 
 var target: Node3D
 var _default_target: Node3D
-var current_zoom: float = 1.0  # Default zoom to show full hearing range (10m)
-var target_zoom: float = 1.0
+var current_zoom: float = 0.7  # Start zoomed in for player
+var target_zoom: float = 0.7
 var current_angle: float = 0.0
 var target_angle: float = 0.0
 var is_dragging: bool = false
@@ -32,6 +34,10 @@ func _ready() -> void:
 	if target_path:
 		target = get_node_or_null(target_path)
 	_default_target = target
+	
+	# Start with player zoom since we begin following the raccoon
+	current_zoom = player_default_zoom
+	target_zoom = player_default_zoom
 	
 	# Snap camera to target immediately on start
 	if target:
@@ -66,15 +72,20 @@ func _connect_to_data_store() -> void:
 
 func _on_selection_changed(selected_ids: Array) -> void:
 	var new_target: Node3D = null
+	var is_player: bool = false
 	
 	if selected_ids.is_empty():
 		new_target = _default_target
+		is_player = true
 	else:
 		var data_store = NPCDataStore.get_instance()
 		new_target = data_store.get_npc_node(selected_ids[0])
+		is_player = false
 	
 	if new_target:
 		target = new_target
+		# Adjust zoom based on unit type
+		target_zoom = player_default_zoom if is_player else npc_default_zoom
 		# Don't reset _smooth_target_pos - let it lerp naturally
 
 

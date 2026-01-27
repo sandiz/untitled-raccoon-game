@@ -11,9 +11,12 @@ func _generate_name() -> String:
 
 func _enter() -> void:
 	_frames_waited = 0
-	# Stop movement
+	# Stop movement (shopkeeper's _physics_process will call move_and_slide)
 	agent.velocity = Vector3.ZERO
-	agent.move_and_slide()
+	
+	# Set idle state
+	if agent.has_method("set_current_state"):
+		agent.set_current_state("idle")
 	
 	var anim: AnimationPlayer = agent.get_node_or_null("AnimationPlayer")
 	if anim:
@@ -25,7 +28,6 @@ func _enter() -> void:
 func _tick(_delta: float) -> Status:
 	# Ensure velocity stays zero for at least 2 frames to prevent sliding
 	agent.velocity = Vector3.ZERO
-	agent.move_and_slide()
 	_frames_waited += 1
 	if _frames_waited >= 2:
 		return SUCCESS
@@ -33,4 +35,3 @@ func _tick(_delta: float) -> Status:
 
 func _exit() -> void:
 	agent.velocity = Vector3.ZERO
-	agent.move_and_slide()

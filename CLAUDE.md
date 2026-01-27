@@ -91,6 +91,20 @@ agent.velocity = Vector3.ZERO
 agent.move_and_slide()  # Required to actually stop!
 ```
 
+### NPC Movement (IMPORTANT - Prevents Sliding!)
+All NPCs should extend `BaseNPC` which handles movement correctly:
+```gdscript
+extends BaseNPC  # NOT CharacterBody3D!
+```
+
+**Rules:**
+- `BaseNPC._physics_process()` calls `move_and_slide()` ONCE per frame
+- BT tasks only set `velocity` - NEVER call `move_and_slide()` from BT tasks
+- Override `_npc_physics_process(delta)` for custom NPC behavior
+- Use `stop_movement()` helper to safely zero velocity
+
+**Why?** Calling `move_and_slide()` multiple times per frame causes physics instability and sliding.
+
 ### Collision Layers
 | Layer | Purpose |
 |-------|---------|

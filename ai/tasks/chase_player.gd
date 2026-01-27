@@ -22,13 +22,14 @@ func _enter() -> void:
 	_celebration_timer = 0.0
 	_time_since_seen = 0.0
 	blackboard.set_var(&"search_time", 0.0)
+	# Stop any residual movement from previous task
+	agent.velocity = Vector3.ZERO
 
 func _tick(delta: float) -> Status:
 	# If caught player, wait for celebration then SUCCESS
 	if _caught_player:
 		# Ensure NPC stays still during celebration
 		agent.velocity = Vector3.ZERO
-		agent.move_and_slide()
 		_celebration_timer += delta
 		if _celebration_timer >= celebration_time:
 			# Clear priority lock so idle can update UI
@@ -65,6 +66,7 @@ func _tick(delta: float) -> Status:
 	
 	# Start chase animation once
 	if not _chase_started:
+		agent.velocity = Vector3.ZERO
 		_chase_started = true
 		_start_chase()
 	
@@ -119,7 +121,6 @@ func _tick(delta: float) -> Status:
 		speed *= emo.chase_speed_multiplier  # Angry = faster
 	
 	agent.velocity = direction * speed
-	agent.move_and_slide()
 	
 	# Face movement direction (use atan2 to match walk behavior)
 	if direction.length() > 0.1:
@@ -173,7 +174,6 @@ func _on_lost_player() -> void:
 
 func _exit() -> void:
 	agent.velocity = Vector3.ZERO
-	agent.move_and_slide()
 	_chase_started = false
 	_caught_player = false
 

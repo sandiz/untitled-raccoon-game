@@ -17,12 +17,10 @@ func _enter() -> void:
 	_elapsed = 0.0
 	# Ensure stopped while waiting
 	agent.velocity = Vector3.ZERO
-	agent.move_and_slide()
 
 func _tick(delta: float) -> Status:
 	# Keep velocity zeroed while waiting
 	agent.velocity = Vector3.ZERO
-	agent.move_and_slide()
 	
 	# Abort check for responsiveness (only if emotional_state exists in blackboard)
 	if blackboard.has_var(&"emotional_state"):
@@ -37,4 +35,3 @@ func _tick(delta: float) -> Status:
 
 func _exit() -> void:
 	agent.velocity = Vector3.ZERO
-	agent.move_and_slide()

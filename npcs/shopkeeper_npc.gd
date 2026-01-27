@@ -1,5 +1,5 @@
 @tool
-extends CharacterBody3D
+extends BaseNPC
 ## Shopkeeper NPC with full emotional state, perception, and social systems.
 
 # Using global classes: NPCEmotionalState, NPCPerception, NPCSocial
@@ -57,6 +57,15 @@ var _perception_range: PerceptionRange
 
 ## Debug: disable AI to test head tracking
 @export var debug_freeze_ai: bool = false
+
+## Debug: show velocity/sliding debug info on screen
+@export var debug_show_velocity: bool = false
+
+# Debug tracking
+var _debug_label: Label3D = null
+var _debug_last_pos: Vector3 = Vector3.ZERO
+var _debug_slide_detected: bool = false
+var _debug_frames_ready: int = 0  # Skip first few frames
 
 # ═══════════════════════════════════════
 # EXPORTS
@@ -146,6 +155,10 @@ func _ready() -> void:
 	_state_indicator.npc_id = npc_id  # Set npc_id for data store sync
 	add_child(_state_indicator)
 	
+	# Create debug label if enabled
+	if debug_show_velocity:
+		_setup_debug_label()
+	
 	# Explicitly set initial idle state AFTER a frame to override any stale state
 	call_deferred("_set_initial_idle_state")
 
@@ -163,6 +176,56 @@ func _set_initial_idle_state() -> void:
 	_update_state_indicator("idle")
 	if _data_store:
 		_data_store.update_npc_state(npc_id, "idle", current_dialogue)
+
+
+func _setup_debug_label() -> void:
+	_debug_label = Label3D.new()
+	_debug_label.position = Vector3(0, 3.0, 0)
+	_debug_label.pixel_size = 0.01
+	_debug_label.font_size = 32
+	_debug_label.outline_size = 8
+	_debug_label.modulate = Color.WHITE
+	_debug_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	add_child(_debug_label)
+	_debug_last_pos = global_position
+
+
+func _update_debug_label(delta: float) -> void:
+	# Skip first few frames to let positions stabilize
+	_debug_frames_ready += 1
+	if _debug_frames_ready < 5:
+		_debug_last_pos = global_position
+		return
+	
+	# Calculate actual movement (position change)
+	var pos_delta = global_position - _debug_last_pos
+	var horizontal_delta = Vector3(pos_delta.x, 0, pos_delta.z)
+	var horizontal_speed = horizontal_delta.length() / delta if delta > 0 else 0.0
+	
+	# Only detect sliding in states that SHOULD be stationary
+	var stationary_states = ["idle", "frustrated", "caught", "tired", "gave_up"]
+	var should_be_stationary = current_state in stationary_states
+	
+	# Detect sliding: moving when should be stationary
+	# Ignore unrealistic speeds (> 10 m/s = false positive)
+	var is_sliding = should_be_stationary and horizontal_speed > 0.05 and horizontal_speed < 10.0
+	
+	if is_sliding and not _debug_slide_detected:
+		_debug_slide_detected = true
+		print("[SLIDE DETECTED] State: %s | Move: %.3f m/s" % [current_state, horizontal_speed])
+	elif not is_sliding:
+		_debug_slide_detected = false
+	
+	# Update label
+	var slide_warning = " ⚠️ SLIDING!" if is_sliding else ""
+	_debug_label.text = "State: %s\nMove: %.2f%s" % [
+		current_state,
+		horizontal_speed,
+		slide_warning
+	]
+	_debug_label.modulate = Color.RED if is_sliding else Color.WHITE
+	
+	_debug_last_pos = global_position
 	
 
 func _exit_tree() -> void:
@@ -171,10 +234,8 @@ func _exit_tree() -> void:
 		if _data_store:
 			_data_store.unregister_npc(npc_id)
 
-func _physics_process(delta: float) -> void:
-	if Engine.is_editor_hint():
-		return
-	
+## Override BaseNPC's physics process for shopkeeper-specific behavior
+func _npc_physics_process(delta: float) -> void:
 	# Startup grace period - don't detect immediately
 	if _startup_grace > 0:
 		_startup_grace -= delta
@@ -207,12 +268,9 @@ func _physics_process(delta: float) -> void:
 		if _suspicious_timer >= SUSPICIOUS_TIMEOUT:
 			set_current_state("idle")
 	
-	# Apply gravity and handle movement
-	if not is_on_floor():
-		velocity.y -= 9.8 * delta
-	else:
-		velocity = Vector3.ZERO  # Reset all velocity when grounded to prevent sliding
-	move_and_slide()
+	# Debug: detect and display sliding
+	if debug_show_velocity and _debug_label:
+		_update_debug_label(delta)
 
 # ═══════════════════════════════════════
 # PERCEPTION UPDATES

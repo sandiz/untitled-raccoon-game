@@ -18,10 +18,11 @@ config/icon="res://icon.svg"
 [autoload]
 
 GameTime="*res://systems/game_time.gd"
+Supabase="*res://addons/supabase/Supabase/supabase.gd"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/moonlake_copilot/plugin.cfg", "res://addons/terrain_3d/plugin.cfg")
+enabled=PackedStringArray("res://addons/moonlake_copilot/plugin.cfg", "res://addons/terrain_3d/plugin.cfg", "res://addons/supabase/plugin.cfg")
 
 [input]
 
