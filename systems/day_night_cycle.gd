@@ -31,21 +31,7 @@ const DEFAULT_SETTINGS_PATH := "res://systems/default_tod_settings.tres"
 @export var day_skybox: Texture2D
 @export var night_skybox: Texture2D
 
-# Fog colors per period
-const FOG_COLORS := {
-	"morning": Color(0.95, 0.85, 0.65),   # Warm golden
-	"afternoon": Color(0.98, 0.95, 0.88), # Bright clear
-	"evening": Color(0.75, 0.55, 0.5),    # Warm coral
-	"night": Color(0.25, 0.3, 0.4),       # Cool blue
-}
-
-# Fog density per period (lower = less fog)
-const FOG_DENSITIES := {
-	"morning": 0.005,
-	"afternoon": 0.002,   # Reduced fog for clear bright sun
-	"evening": 0.006,
-	"night": 0.008,
-}
+# Fog settings now come from TODSettings resource
 
 var _current_time: float = 0.0
 var _paused: bool = false
@@ -189,8 +175,8 @@ func _get_period_settings(period: TimePeriod) -> Dictionary:
 				"ambient_color": settings.morning_ambient_color,
 				"ambient_energy": settings.morning_ambient_energy,
 				"brightness": settings.morning_brightness,
-				"fog_color": FOG_COLORS.morning,
-				"fog_density": FOG_DENSITIES.morning,
+				"fog_color": settings.morning_fog_color,
+				"fog_density": settings.morning_fog_density,
 				"use_night_sky": false,
 			}
 		TimePeriod.AFTERNOON:
@@ -200,8 +186,8 @@ func _get_period_settings(period: TimePeriod) -> Dictionary:
 				"ambient_color": settings.afternoon_ambient_color,
 				"ambient_energy": settings.afternoon_ambient_energy,
 				"brightness": settings.afternoon_brightness,
-				"fog_color": FOG_COLORS.afternoon,
-				"fog_density": FOG_DENSITIES.afternoon,
+				"fog_color": settings.afternoon_fog_color,
+				"fog_density": settings.afternoon_fog_density,
 				"use_night_sky": false,
 			}
 		TimePeriod.EVENING:
@@ -211,8 +197,8 @@ func _get_period_settings(period: TimePeriod) -> Dictionary:
 				"ambient_color": settings.evening_ambient_color,
 				"ambient_energy": settings.evening_ambient_energy,
 				"brightness": settings.evening_brightness,
-				"fog_color": FOG_COLORS.evening,
-				"fog_density": FOG_DENSITIES.evening,
+				"fog_color": settings.evening_fog_color,
+				"fog_density": settings.evening_fog_density,
 				"use_night_sky": false,
 			}
 		TimePeriod.NIGHT:
@@ -222,8 +208,8 @@ func _get_period_settings(period: TimePeriod) -> Dictionary:
 				"ambient_color": settings.night_ambient_color,
 				"ambient_energy": settings.night_ambient_energy,
 				"brightness": settings.night_brightness,
-				"fog_color": FOG_COLORS.night,
-				"fog_density": FOG_DENSITIES.night,
+				"fog_color": settings.night_fog_color,
+				"fog_density": settings.night_fog_density,
 				"use_night_sky": true,
 			}
 	return {}
