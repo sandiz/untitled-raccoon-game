@@ -1,216 +1,57 @@
 # Progress
 
-## Current State: Theft Detection Complete ✅
+## Current State: Core Loop Complete ✅
 
-The idle/chase cycle is **bulletproof** and now includes **theft detection** - shopkeeper only chases when seeing the raccoon holding a stolen item.
+Shopkeeper wanders → Sees raccoon with item → Chases → Catch/Escape → Repeat
 
 ---
 
-## Behavior Tree (LimboAI) ✅
+## Systems Status
 
-### Active Tasks (5 files)
-| Task | Purpose |
-|------|---------|
-| `chase_player.gd` | Chase → catch → celebrate → cooldown |
-| `play_idle.gd` | Play idle anim, wait 2 frames for physics |
-| `move_to_position.gd` | Navigate to wander target with rotation |
-| `select_random_position.gd` | Pick random point in radius |
-| `interruptible_wait.gd` | Wait 2-5s, abort if will_chase |
+| System | Status | Key Files |
+|--------|--------|-----------|
+| BT AI | ✅ | `ai/tasks/*.gd`, `ai/trees/shopkeeper_ai.tres` |
+| Emotional State | ✅ | `systems/npc_emotional_state.gd` |
+| Perception | ✅ | `systems/npc_perception.gd` |
+| Theft Detection | ✅ | Player pickup + NPC sees item = chase |
+| UI (Info Panel) | ✅ | `ui/npc_info_panel.gd` |
+| Day/Night | ✅ | `systems/day_night_cycle.gd` |
+| Save System | ✅ | `systems/simulation_save_manager.gd` (v2) |
 
-### BT Structure
+---
+
+## Key Mechanics
+
+### Chase Trigger
+- Suspicion ≥ 70 AND stamina > 20 → `will_chase = true`
+- Seeing raccoon alone: +40 suspicion (max 65, NO chase)
+- Seeing raccoon + item: suspicion = 100 → CHASE
+
+### 3 Meters
+| Meter | Trigger | Decay |
+|-------|---------|-------|
+| Stamina | Drains during chase | Recovers when idle |
+| Suspicion | Seeing player | 5/sec toward 10 |
+| Temper | Failed chases | 1.5/sec (slow) |
+
+### NPC Movement
+All NPCs extend `BaseNPC` - single `move_and_slide()` per frame.
+
+---
+
+## File Structure
 ```
-BTRepeat (forever)
-└── BTSelector
-    ├── ChasePlayer (speed: 5.0)
-    └── BTSequence (wander)
-        ├── SelectRandomPosition
-        ├── MoveToPosition
-        ├── PlayIdle
-        └── InterruptibleWait
-```
-
-### Fixed Issues ✅
-- Double celebration: Cooldown set IMMEDIATELY on catch
-- Velocity sliding: All tasks call move_and_slide() in _exit()
-- Walk-on-spot: Rotate first, move when within 45°
-- UI status stuck: Clear priority lock when celebration ends
-
----
-
-## 3-Meter Emotional System ✅
-
-| Meter | Range | Effect |
-|-------|-------|--------|
-| Stamina | 100→0 | Drains while chasing, triggers give-up |
-| Suspicion | 0→100 | Builds from seeing player, triggers chase |
-| Temper | 0→100 | Builds from failed chases, speeds pursuit |
-
-### Thresholds
-- `will_chase`: Suspicion ≥ 70 (HUNTING_THRESHOLD)
-- `will_give_up`: Stamina ≤ 20
-- Chase speed multiplier: 1.0 + (temper * 0.005)
-
-### Theft Detection ✅
-- Seeing raccoon alone: Suspicion +40 (alert but NO chase)
-- Seeing raccoon with item: `on_saw_stealing()` → Suspicion = 100 → CHASE!
-
----
-
-## Perception System ✅
-
-- Vision: 10m range, 90° FOV
-- Hearing: 10m range (full circle)
-- Visual indicator: Truncated cone starting 1m ahead of feet
-- Detection line: Single orange line at body height (0.9m)
-- **Fade in/out on NPC selection**
-
----
-
-## UI System ✅
-
-### NPC Info Panel
-- Shows selected NPC stats (Stamina, Suspicion, Temper)
-- State label with emoji indicator
-- Progress bars with proper alignment
-
-### Speech Bubble
-- SubViewport rendering for crisp 2D in 3D
-- Typewriter effect
-- Priority system (LOW → CRITICAL)
-- Extra padding for descenders (q, g, y, p, j)
-
-### Selection System
-- Click to select NPC
-- Selection ring visual
-- Vision/hearing indicators fade in on select
-
----
-
-## Day/Night Cycle ✅
-
-- 4 TOD periods: Morning, Afternoon, Evening, Night
-- Skybox switching with smooth transitions
-- TOD clock widget (expandable)
-- Fog color matches sky
-
----
-
-## Camera ✅
-
-- Follow camera with zoom (default 1.0 shows full 10m hearing range)
-- Smooth tracking
-
----
-
-## Files Structure
-
-```
-ai/
-├── tasks/
-│   ├── chase_player.gd
-│   ├── play_idle.gd
-│   ├── move_to_position.gd
-│   ├── select_random_position.gd
-│   └── interruptible_wait.gd
-└── trees/
-    └── shopkeeper_ai.tres
-
-npcs/
-├── base_npc.gd            # Base class - handles move_and_slide() once per frame
-├── shopkeeper_npc.gd      # Main NPC controller (extends BaseNPC)
-├── shopkeeper.tscn
-├── head_look_at.gd        # Head tracking + debug line
-└── perception_range.gd    # Vision/hearing visualization
-
-systems/
-├── npc_emotional_state.gd # 3-meter system
-├── npc_perception.gd      # Sight/hearing + target_is_holding_item
-├── npc_personality.gd     # Data-driven traits
-├── shop_item.gd           # Stealable items (is_held, pickup)
-├── game_time.gd           # Static singleton (NOT autoload)
-└── simulation_save_manager.gd  # v2: emotional state NOT restored
-
-items/
-└── stealable_item.gd      # Base class (alternative to ShopItem)
-
-player/
-└── player_controller.gd   # WASD + E pickup/drop system
-
-ui/
-├── npc_info_panel.gd
-├── npc_state_indicator.gd # Speech bubble
-├── npc_data_store.gd      # Centralized state
-└── npc_ui_utils.gd
-
-plans/
-├── limboai_bt_guide.md    # BT best practices
-├── meters_design.md
-├── competitive_analysis.md
-└── progress.md            # This file
-```
-
----
-
-## Theft/Pickup System ✅ (NEW)
-
-### Player Pickup
-- Press **E** to pick up / drop items
-- `is_holding_item()` method for detection
-- Pickup prompt appears near items
-- Items reparent to player when held
-
-### ShopItem Integration
-- Added `is_held` computed property
-- Added to `stealable_items` group
-- `pickup()` wrapper for compatibility
-
-### Detection Flow
-```
-Raccoon exists → Shopkeeper sees → Suspicion ~50 → Alert, NO CHASE
-Raccoon + Item → Shopkeeper sees → on_saw_stealing() → Suspicion 100 → CHASE!
+ai/tasks/         # BT actions (chase, idle, move, wait)
+npcs/             # base_npc.gd, shopkeeper_npc.gd
+systems/          # emotional, perception, save, time
+player/           # controller + pickup (E key)
+ui/               # info panel, speech bubble, selection
 ```
 
 ---
 
 ## Next Steps
-
-1. **Gameplay**: Item drop on catch, item return behavior
-2. **AI**: Search behavior when player escapes  
-3. **Audio**: Footsteps, alert sounds, honk
-4. **Polish**: More NPC dialogue variety, catch animation
-5. **Juice**: Screen shake on catch, particle effects
-
----
-
-## NPC Movement Architecture ✅
-
-### BaseNPC Class
-All NPCs extend `BaseNPC` which handles movement properly:
-- `move_and_slide()` called ONCE per frame in `_physics_process`
-- BT tasks only SET velocity, never call `move_and_slide()`
-- Gravity applied automatically when not on floor
-- Prevents sliding bugs from multiple `move_and_slide()` calls
-
-### Shopkeeper Override
-- `_npc_physics_process()` for perception/emotional updates
-- Startup grace period (1s) - no detection, velocity zeroed
-- Debug overlay available via `debug_show_velocity` export
-
----
-
-## Simulation Save System ✅ (v2)
-
-### What's Saved
-- Time of day
-- NPC positions and rotations
-- Camera position
-- NPC dialogue
-
-### What's NOT Restored (by design)
-- Emotional state (suspicion, temper, stamina)
-- Each session starts with calm NPCs
-
-### Safety Checks
-- Won't autosave if any NPC is in active state (chasing, alerted)
-- Won't autosave if any NPC has alertness > 0.3
-- F5: Quick save, F9: Quick load, Shift+R: Reset
+1. Item drop on catch, return behavior
+2. Search behavior when player escapes
+3. Audio (footsteps, alerts, honk)
+4. Polish (animations, particles)
