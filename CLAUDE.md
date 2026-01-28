@@ -128,6 +128,25 @@ static func get_instance() -> GameTime:
 
 **Examples:** `GameTime`, `NPCDataStore`
 
+### Save System - Never Save Combat/Active State
+**NEVER save transient runtime values** like emotional state, alert levels, or mid-action data.
+
+**Rules:**
+- Only save when game is in safe/idle state (no combat, no chase)
+- Don't save: suspicion, alertness, temper, stamina, chase state
+- DO save: positions, time of day, camera, persistent progress
+- On load: always restore NPCs to calm/idle state
+
+**Why?** No game allows saving during combat. Restoring transient state causes bugs like:
+- NPC chasing player immediately on load
+- Broken AI state machines
+- Confusing player experience
+
+**Current implementation:** `SimulationSaveManager` (v2)
+- Won't save if any NPC has alertness > 0.3
+- Won't save if any NPC is in active state (chasing, alerted)
+- Emotional state is NOT restored - each session starts calm
+
 ### Collision Layers
 | Layer | Purpose |
 |-------|---------|
