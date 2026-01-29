@@ -11,7 +11,7 @@ extends Node3D
 @export var vision_start_offset: float = 1.0  # Start cone 1m ahead of feet
 @export var vision_color: Color = Color(0.2, 0.75, 0.3, 0.5)  # Vivid green (idle)
 @export var vision_outline_color: Color = Color(0.1, 0.6, 0.2, 0.9)  # Strong green outline
-@export var hearing_color: Color = Color(0.6, 0.2, 0.7, 0.5)  # Vivid violet - contrasts with green
+@export var hearing_color: Color = Color(0.5, 0.5, 0.5, 0.15)  # Subtle gray - secondary to vision
 @export var show_hearing: bool = true
 @export var fade_duration: float = 0.25  # How long fade takes
 
@@ -45,7 +45,7 @@ var _current_alpha: float = 0.0  # Start hidden
 # Store target alphas for each material
 var _vision_target_alpha: float = 0.5
 var _outline_target_alpha: float = 0.9
-var _hearing_target_alpha: float = 0.4  # Increased for visibility
+var _hearing_target_alpha: float = 0.15  # Subtle - secondary to vision
 
 
 func _ready() -> void:
