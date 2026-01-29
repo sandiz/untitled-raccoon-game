@@ -349,6 +349,7 @@ func _on_sound_heard(source_position: Vector3, sound_type: String, loudness: flo
 			if loudness > 0.5:
 				emotional_state.on_heard_noise()
 	
+	# Set investigate position for BT to handle
 	_update_blackboard("investigate_position", source_position)
 
 # ═══════════════════════════════════════

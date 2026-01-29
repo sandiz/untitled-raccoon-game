@@ -83,6 +83,22 @@ mesh.surface_add_vertex(edge2)  # Second edge (larger angle)
 # NOT center -> edge2 -> edge1 (that faces DOWN)
 ```
 
+### BT Interrupt Pattern
+**Problem:** BTSelector doesn't re-evaluate earlier children when a lower-priority child is RUNNING. If Wander is running and a sound is heard, Investigate won't run until Wander completes.
+
+**Solution:** Add abort checks in long-running tasks (MoveToPosition, InterruptibleWait):
+```gdscript
+func _tick(delta: float) -> Status:
+    # Abort if higher-priority action needed
+    var investigate_pos = blackboard.get_var(&"investigate_position", Vector3.INF)
+    if investigate_pos != Vector3.INF:
+        agent.velocity = Vector3.ZERO
+        return FAILURE  # Allows selector to re-evaluate
+    
+    # ... rest of task logic
+```
+This pattern makes BT responsive to events even during long-running sequences.
+
 ### Collision Layers
 | Layer | Purpose |
 |-------|---------|

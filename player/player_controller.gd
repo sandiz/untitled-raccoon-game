@@ -1,10 +1,11 @@
 extends CharacterBody3D
-## Raccoon - player's avatar. Can pick up items to steal.
+## Raccoon - player's avatar. Can pick up items to steal and HONK!
 
 signal possessed_npc(npc: Node3D)
 signal released_npc(npc: Node3D)
 signal item_picked_up(item: Node3D)
 signal item_dropped(item: Node3D)
+signal honked(position: Vector3)
 
 var _current_possessed: Node3D = null
 var _selection_ring: Node3D = null
@@ -13,6 +14,11 @@ var _selection_ring: Node3D = null
 var held_item: Node3D = null  # StealableItem currently held
 var nearby_items: Array = []  # Items in pickup range
 @export var pickup_range: float = 1.5
+
+## Honk system
+@export var honk_cooldown: float = 0.5
+var _last_honk_time: float = 0.0
+var _honk_player: AudioStreamPlayer3D = null
 
 ## Debug: enable WASD movement for testing
 @export var debug_movement: bool = true
@@ -30,6 +36,7 @@ func _ready() -> void:
 	_setup_selection_ring()
 	_setup_pickup_area()
 	_setup_pickup_prompt()
+	_setup_honk_audio()
 	
 	# Connect to NPC selection to show ring when no NPC selected
 	call_deferred("_connect_to_data_store")
@@ -229,6 +236,10 @@ func _input(event: InputEvent) -> void:
 		else:
 			try_pickup()
 	
+	# H key to honk (alerts nearby NPCs)
+	if event is InputEventKey and event.pressed and event.keycode == KEY_H:
+		_honk()
+	
 	# Debug: T key toggles a fake item for testing theft detection
 	if event is InputEventKey and event.pressed and event.keycode == KEY_T:
 		_toggle_debug_item()
@@ -310,3 +321,94 @@ func _toggle_debug_item() -> void:
 		held_item = _debug_item
 		item_picked_up.emit(held_item)
 		print("[DEBUG] Added debug item to hand - is_holding_item() = ", is_holding_item())
+
+
+# ═══════════════════════════════════════
+# HONK SYSTEM
+# ═══════════════════════════════════════
+
+func _honk() -> void:
+	var current_time = Time.get_ticks_msec() / 1000.0
+	if current_time - _last_honk_time < honk_cooldown:
+		return
+	
+	_last_honk_time = current_time
+	
+	# Play honk sound
+	if _honk_player:
+		_honk_player.pitch_scale = randf_range(0.85, 1.15)
+		_honk_player.play()
+	
+	# Emit signal
+	honked.emit(global_position)
+	
+	# Broadcast to nearby NPCs
+	_broadcast_honk()
+
+
+func _broadcast_honk() -> void:
+	for npc in get_tree().get_nodes_in_group("npc"):
+		# Check hearing range (default 10m, or use NPC's perception range)
+		var hearing_range = 10.0
+		if npc.get("perception") and npc.perception.get("hearing_range"):
+			hearing_range = npc.perception.hearing_range
+		
+		var distance = global_position.distance_to(npc.global_position)
+		if distance > hearing_range:
+			continue  # Too far to hear
+		
+		if npc.has_method("on_heard_honk"):
+			npc.on_heard_honk(global_position)
+		elif npc.get("perception"):
+			npc.perception.hear_sound(global_position, "honk", 1.0)
+
+
+func _setup_honk_audio() -> void:
+	_honk_player = AudioStreamPlayer3D.new()
+	_honk_player.name = "HonkPlayer"
+	_honk_player.max_distance = 20.0
+	_honk_player.unit_size = 3.0
+	_honk_player.volume_db = 6.0
+	add_child(_honk_player)
+	
+	_honk_player.stream = _generate_honk_stream()
+
+
+func _generate_honk_stream() -> AudioStreamWAV:
+	var sample_rate = 22050
+	var duration = 0.25
+	var num_samples = int(sample_rate * duration)
+	
+	var stream = AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = sample_rate
+	stream.stereo = false
+	
+	var data = PackedByteArray()
+	data.resize(num_samples * 2)
+	
+	for i in range(num_samples):
+		var t = float(i) / sample_rate
+		var progress = float(i) / num_samples
+		
+		# Soft trill: gentle wobble between two close frequencies
+		var base_freq = 400.0
+		var trill_speed = 25.0
+		var trill_depth = 80.0
+		var freq = base_freq + sin(t * trill_speed * TAU) * trill_depth
+		
+		# Soft sine wave
+		var sample = sin(t * freq * TAU) * 0.4
+		
+		# Gentle fade in and out
+		var envelope = sin(progress * PI)
+		envelope = pow(envelope, 0.7)
+		
+		sample *= envelope
+		
+		var sample_int = int(clamp(sample * 32767, -32768, 32767))
+		data[i * 2] = sample_int & 0xFF
+		data[i * 2 + 1] = (sample_int >> 8) & 0xFF
+	
+	stream.data = data
+	return stream

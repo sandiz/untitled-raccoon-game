@@ -24,6 +24,12 @@ func _tick(delta: float) -> Status:
 		agent.velocity = Vector3.ZERO
 		return FAILURE
 	
+	# Also abort if there's a sound to investigate
+	var investigate_pos = blackboard.get_var(&"investigate_position", Vector3.INF)
+	if investigate_pos != Vector3.INF:
+		agent.velocity = Vector3.ZERO
+		return FAILURE
+	
 	var target_pos: Vector3 = blackboard.get_var(position_var, agent.global_position)
 	var distance = agent.global_position.distance_to(target_pos)
 	

@@ -29,6 +29,11 @@ func _tick(delta: float) -> Status:
 	if emo and emo.will_chase:
 		return FAILURE
 	
+	# Also abort if there's a sound to investigate
+	var investigate_pos = blackboard.get_var(&"investigate_position", Vector3.INF)
+	if investigate_pos != Vector3.INF:
+		return FAILURE
+	
 	_elapsed += delta
 	if _elapsed >= _duration:
 		return SUCCESS
