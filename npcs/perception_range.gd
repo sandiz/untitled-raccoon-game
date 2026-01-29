@@ -12,7 +12,7 @@ extends Node3D
 @export var vision_color: Color = Color(0.2, 0.75, 0.3, 0.5)  # Vivid green (idle)
 @export var vision_outline_color: Color = Color(0.1, 0.6, 0.2, 0.9)  # Strong green outline
 @export var hearing_color: Color = Color(0.6, 0.2, 0.7, 0.25)  # Vivid violet - contrasts with green
-@export var show_hearing: bool = true
+@export var show_hearing: bool = false  # Disabled for debugging
 @export var fade_duration: float = 0.25  # How long fade takes
 
 # State colors - more saturated for daytime visibility
@@ -49,7 +49,9 @@ var _hearing_target_alpha: float = 0.25
 
 
 func _ready() -> void:
-	_create_hearing_circle()
+	# Hearing circle disabled - causes color blending issues with vision cone
+	#if show_hearing:
+	#	_create_hearing_circle()
 	_create_vision_cone()
 	_create_vision_outline()
 	
@@ -84,7 +86,7 @@ func _create_hearing_circle() -> void:
 	mat.albedo_color = hearing_color
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
 	_hearing_mesh.material_override = mat
 	
 	add_child(_hearing_mesh)
@@ -102,7 +104,7 @@ func _create_vision_cone() -> void:
 	mat.albedo_color = vision_color
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
 	_vision_mesh.material_override = mat
 	
 	_update_vision_cone_mesh()
@@ -120,6 +122,7 @@ func _create_vision_outline() -> void:
 	mat.albedo_color = vision_outline_color
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
 	_vision_outline.material_override = mat
 	
 	_update_vision_outline_mesh()
@@ -184,15 +187,15 @@ func _update_vision_cone_mesh() -> void:
 		var outer1 = Vector3(sin(angle1) * vision_range, 0, cos(angle1) * vision_range)
 		var outer2 = Vector3(sin(angle2) * vision_range, 0, cos(angle2) * vision_range)
 		
-		# Triangle 1: inner1 -> outer1 -> outer2
+		# Triangle 1: inner1 -> outer2 -> outer1 (CCW from above = faces up)
 		mesh.surface_add_vertex(inner1)
+		mesh.surface_add_vertex(outer2)
 		mesh.surface_add_vertex(outer1)
-		mesh.surface_add_vertex(outer2)
 		
-		# Triangle 2: inner1 -> outer2 -> inner2
+		# Triangle 2: inner1 -> inner2 -> outer2 (CCW from above = faces up)
 		mesh.surface_add_vertex(inner1)
-		mesh.surface_add_vertex(outer2)
 		mesh.surface_add_vertex(inner2)
+		mesh.surface_add_vertex(outer2)
 	
 	mesh.surface_end()
 
