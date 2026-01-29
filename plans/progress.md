@@ -14,18 +14,38 @@ Shopkeeper wanders → Sees raccoon with item → Chases → Catch/Escape → Re
 | Emotional State | ✅ | `systems/npc_emotional_state.gd` |
 | Perception | ✅ | `systems/npc_perception.gd` |
 | Theft Detection | ✅ | Player pickup + NPC sees item = chase |
+| Animation | ✅ | `npcs/shopkeeper_animator.gd` (extracted) |
 | UI (Info Panel) | ✅ | `ui/npc_info_panel.gd` |
 | Day/Night | ✅ | `systems/day_night_cycle.gd` |
 | Save System | ✅ | `systems/simulation_save_manager.gd` (v2) |
 
 ---
 
+## Recent Changes (Session)
+
+### Animation Extraction
+- Extracted 80+ lines of animation logic to `ShopkeeperAnimator` component
+- Clean separation: NPC handles state, Animator handles visuals
+- Same pattern can be reused for other NPCs
+
+### Chase Bug Fixes
+- Added `witnessed_theft` flag - chase ONLY triggers when NPC saw stealing
+- Fixed post-catch infinite loop with cooldown check
+- Fixed blackboard access pattern in BT abort checks (fallback to agent)
+- Fixed method name mismatches (`on_saw_player`, `on_lost_sight`)
+
+### Debug Tools
+- `T` key toggles debug item in raccoon's hand for testing theft detection
+
+---
+
 ## Key Mechanics
 
 ### Chase Trigger
-- Suspicion ≥ 70 AND stamina > 20 → `will_chase = true`
-- Seeing raccoon alone: +40 suspicion (max 65, NO chase)
-- Seeing raccoon + item: suspicion = 100 → CHASE
+- `witnessed_theft = true` (NPC must have seen stealing)
+- Stamina > 20 → `will_chase = true`
+- Seeing raccoon alone: awareness only, NO chase
+- Seeing raccoon + item: `witnessed_theft = true` → CHASE
 
 ### 3 Meters
 | Meter | Trigger | Decay |
@@ -42,16 +62,33 @@ All NPCs extend `BaseNPC` - single `move_and_slide()` per frame.
 ## File Structure
 ```
 ai/tasks/         # BT actions (chase, idle, move, wait)
-npcs/             # base_npc.gd, shopkeeper_npc.gd
+npcs/             # base_npc.gd, shopkeeper_npc.gd, shopkeeper_animator.gd
 systems/          # emotional, perception, save, time
-player/           # controller + pickup (E key)
+player/           # controller + pickup (E key), T for debug item
 ui/               # info panel, speech bubble, selection
 ```
 
 ---
 
+## Architecture
+
+### Component Pattern
+```
+ShopkeeperNPC
+├── NPCEmotionalState    # Meters: stamina, suspicion, temper
+├── NPCPerception        # Sight, detection, awareness tracking
+├── NPCSocial            # NPC-to-NPC communication (planned)
+└── ShopkeeperAnimator   # Animation state machine (extracted)
+```
+
+All systems stored in blackboard for BT access with fallback pattern.
+
+---
+
 ## Next Steps
-1. Item drop on catch, return behavior
-2. Search behavior when player escapes
-3. Audio (footsteps, alerts, honk)
-4. Polish (animations, particles)
+1. ~~Extract animation logic~~ ✅ Done
+2. Search behavior when player escapes (hold for now)
+3. Give Up behavior after long chase (hold for now)
+4. Item drop on catch, return behavior
+5. Audio (footsteps, alerts, honk)
+6. Polish (animations, particles)

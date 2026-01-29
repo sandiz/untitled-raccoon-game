@@ -40,6 +40,10 @@ var temper: float = 0.0:
 			state_changed.emit("temper", old, temper)
 			_check_thresholds("temper", old, temper)
 
+## 🚨 WITNESSED THEFT: True if NPC actually saw player holding stolen item.
+## Chase ONLY triggers if this is true (prevents chasing for just being seen).
+var witnessed_theft: bool = false
+
 # ═══════════════════════════════════════
 # DECAY/RECOVERY RATES (per second)
 # ═══════════════════════════════════════
@@ -117,9 +121,9 @@ var mood: String:
 			return "suspicious"
 		return "calm"
 
-## Should NPC chase? Need HIGH suspicion (caught stealing) AND stamina
+## Should NPC chase? Need to have WITNESSED theft AND have stamina
 var will_chase: bool:
-	get: return suspicion >= HUNTING_THRESHOLD and stamina > EXHAUSTED_THRESHOLD
+	get: return witnessed_theft and stamina > EXHAUSTED_THRESHOLD
 
 ## Should NPC give up? Too tired
 var will_give_up: bool:
@@ -194,6 +198,7 @@ func on_saw_player() -> void:
 func on_saw_stealing() -> void:
 	suspicion = 100.0  # Max alert
 	temper += SAW_STEALING_TEMPER
+	witnessed_theft = true  # This enables chase
 
 func on_lost_sight() -> void:
 	suspicion += LOST_SIGHT_SUSPICION
@@ -202,9 +207,12 @@ func on_lost_sight() -> void:
 func on_chase_failed() -> void:
 	temper += CHASE_FAIL_TEMPER
 	suspicion += CHASE_FAIL_SUSPICION
+	witnessed_theft = false  # Reset - gave up, will need to see theft again
 
 func on_chase_success() -> void:
 	temper += CHASE_SUCCESS_TEMPER  # Negative = calms down
+	witnessed_theft = false  # Reset - player was caught, slate clean
+	suspicion = base_suspicion  # Reset suspicion so we don't immediately re-detect
 
 func on_item_stolen() -> void:
 	temper += ITEM_STOLEN_TEMPER

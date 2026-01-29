@@ -18,6 +18,9 @@ var nearby_items: Array = []  # Items in pickup range
 @export var debug_movement: bool = true
 @export var debug_speed: float = 5.0
 
+## Debug item for testing theft detection
+var _debug_item: Node3D = null
+
 ## Pickup prompt
 var _pickup_prompt: Label3D = null
 
@@ -225,6 +228,10 @@ func _input(event: InputEvent) -> void:
 			drop_item()
 		else:
 			try_pickup()
+	
+	# Debug: T key toggles a fake item for testing theft detection
+	if event is InputEventKey and event.pressed and event.keycode == KEY_T:
+		_toggle_debug_item()
 
 
 func _physics_process(delta: float) -> void:
@@ -259,3 +266,47 @@ func _physics_process(delta: float) -> void:
 		velocity.y -= 9.8 * delta
 	
 	move_and_slide()
+
+
+# ═══════════════════════════════════════
+# DEBUG COMMANDS
+# ═══════════════════════════════════════
+
+## Toggle a debug item in hand for testing theft detection
+## Press T to add/remove a fake stolen item
+func _toggle_debug_item() -> void:
+	if held_item:
+		# Remove debug item
+		if _debug_item and is_instance_valid(_debug_item):
+			_debug_item.queue_free()
+			_debug_item = null
+		held_item = null
+		item_dropped.emit(null)
+		print("[DEBUG] Removed item from hand - is_holding_item() = ", is_holding_item())
+	else:
+		# Create a simple debug item (red cube)
+		_debug_item = Node3D.new()
+		_debug_item.name = "DebugStolenItem"
+		
+		var mesh_instance = MeshInstance3D.new()
+		var box = BoxMesh.new()
+		box.size = Vector3(0.3, 0.3, 0.3)
+		mesh_instance.mesh = box
+		
+		# Red material to make it obvious
+		var material = StandardMaterial3D.new()
+		material.albedo_color = Color(1.0, 0.2, 0.2)
+		material.emission_enabled = true
+		material.emission = Color(0.5, 0.1, 0.1)
+		mesh_instance.material_override = material
+		
+		_debug_item.add_child(mesh_instance)
+		add_child(_debug_item)
+		
+		# Position in front of raccoon (like holding it)
+		_debug_item.position = Vector3(0, 0.5, -0.4)
+		
+		# Set as held item
+		held_item = _debug_item
+		item_picked_up.emit(held_item)
+		print("[DEBUG] Added debug item to hand - is_holding_item() = ", is_holding_item())

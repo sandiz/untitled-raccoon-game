@@ -48,17 +48,23 @@ func _ready() -> void:
 	add_to_group("day_night_cycle")
 	_load_settings()
 	_auto_find_references()
-	if auto_start:
-		# Start at 9 AM (0.125 normalized: 0.125 * 24 + 6 = 9)
+	
+	# Initialize save manager first (ensures it's ready)
+	var save_manager = SimulationSaveManager.get_instance()
+	
+	# Check for saved time BEFORE setting default
+	var saved_time = save_manager.get_saved_time()
+	if saved_time >= 0.0:
+		# Restore saved time
+		_current_time = saved_time * settings.cycle_duration
+	elif auto_start:
+		# No save - start at 9 AM (0.125 normalized)
 		_current_time = 0.125 * settings.cycle_duration
-		_update_lighting()
-
+	
+	_update_lighting()
 	
 	# Cache materials after other scripts have run (use timer to ensure GhibliShaderApplier finishes)
 	get_tree().create_timer(0.1).timeout.connect(_cache_shader_materials)
-	
-	# Initialize save manager (ensures it's ready for F5/F9/Shift+R hotkeys)
-	SimulationSaveManager.get_instance()
 
 
 func _load_settings() -> void:

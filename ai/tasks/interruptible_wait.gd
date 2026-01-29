@@ -22,11 +22,12 @@ func _tick(delta: float) -> Status:
 	# Keep velocity zeroed while waiting
 	agent.velocity = Vector3.ZERO
 	
-	# Abort check for responsiveness (only if emotional_state exists in blackboard)
-	if blackboard.has_var(&"emotional_state"):
-		var emo = blackboard.get_var(&"emotional_state")
-		if emo and emo.will_chase:
-			return FAILURE
+	# Abort check for responsiveness - check if we should chase
+	var emo = blackboard.get_var(&"emotional_state")
+	if not emo:
+		emo = agent.get("emotional_state")
+	if emo and emo.will_chase:
+		return FAILURE
 	
 	_elapsed += delta
 	if _elapsed >= _duration:

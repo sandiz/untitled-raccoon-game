@@ -8,6 +8,10 @@
 
 config_version=5
 
+[animation]
+
+compatibility/default_parent_skeleton_in_mesh_instance_3d=true
+
 [application]
 
 config/name="Untitled Raccoon Game"
@@ -16,13 +20,9 @@ run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.5", "Forward Plus")
 config/icon="res://icon.svg"
 
-[autoload]
-
-Supabase="*res://addons/supabase/Supabase/supabase.gd"
-
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/moonlake_copilot/plugin.cfg", "res://addons/terrain_3d/plugin.cfg", "res://addons/supabase/plugin.cfg")
+enabled=PackedStringArray("res://addons/moonlake_copilot/plugin.cfg", "res://addons/terrain_3d/plugin.cfg")
 
 [input]
 
@@ -78,19 +78,10 @@ toggle_debug={
 
 [moonlake]
 
-project_type="3d"
-copilot_settings={
-"behavior": {
-"auto_scroll": true,
-"escape_to_stop": true,
-"show_waiting_messages": true
-},
-"schema_version": 11,
-"ui": {
-"input_height": 362.0
-}
-}
-project_id="16ba072e-b86a-41ba-b607-ba75d7244946"
+general/project_id="2e0c8ecb-c65a-4392-af3c-92f8d91b2db4"
+ui/simplified_ui=true
+agent_behavior/escape_key_stops_agent=true
+general/project_type="3d"
 
 [navigation]
 

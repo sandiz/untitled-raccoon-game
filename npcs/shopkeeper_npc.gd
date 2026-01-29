@@ -17,6 +17,9 @@ var perception: NPCPerception = NPCPerception.new()
 ## Social component (communication with other NPCs)
 var social: NPCSocial = NPCSocial.new()
 
+## Animation controller component
+var animator: ShopkeeperAnimator = ShopkeeperAnimator.new()
+
 # ═══════════════════════════════════════
 # STATE
 # ═══════════════════════════════════════
@@ -58,14 +61,6 @@ var _perception_range: PerceptionRange
 ## Debug: disable AI to test head tracking
 @export var debug_freeze_ai: bool = false
 
-## Debug: show velocity/sliding debug info on screen
-@export var debug_show_velocity: bool = false
-
-# Debug tracking
-var _debug_label: Label3D = null
-var _debug_last_pos: Vector3 = Vector3.ZERO
-var _debug_slide_detected: bool = false
-var _debug_frames_ready: int = 0  # Skip first few frames
 
 # ═══════════════════════════════════════
 # EXPORTS
@@ -78,7 +73,8 @@ var _debug_frames_ready: int = 0  # Skip first few frames
 @export var play_in_editor: bool = true:
 	set(value):
 		play_in_editor = value
-		_update_editor_animation()
+		if Engine.is_editor_hint() and animator:
+			animator.play_editor_preview()
 
 # ═══════════════════════════════════════
 # LIFECYCLE
@@ -88,7 +84,8 @@ func _ready() -> void:
 	add_to_group("npc")
 	
 	if Engine.is_editor_hint():
-		_update_editor_animation()
+		animator.setup(self)
+		animator.play_editor_preview()
 		return
 	
 	# Load default personality if none assigned
@@ -113,13 +110,19 @@ func _ready() -> void:
 	# Initialize systems
 	perception.setup(self)
 	social.setup(self)
+	animator.setup(self)
 	
 	# Connect system signals
 	_connect_signals()
 	
-	# Setup behavior tree
+	# Setup behavior tree (but keep it inactive during startup grace period)
 	_setup_behavior_tree()
-	_play_idle_animation()
+	animator.play_idle()
+	
+	# Disable BTPlayer during startup grace period OR if debug_freeze_ai is on
+	var bt_player = get_node_or_null("BTPlayer")
+	if bt_player and (_startup_grace > 0 or debug_freeze_ai):
+		bt_player.set_active(false)
 	
 	# Find player reference
 	_player = get_tree().get_first_node_in_group("player")
@@ -144,20 +147,10 @@ func _ready() -> void:
 	if _perception_range:
 		_perception_range.npc_id = npc_id  # Set npc_id for selection-based fade
 	
-	# Debug mode: disable BT
-	if debug_freeze_ai:
-		var bt_player = get_node_or_null("BTPlayer")
-		if bt_player:
-			bt_player.set_active(false)
-	
 	# Create floating state indicator
 	_state_indicator = NPCStateIndicator.new()
 	_state_indicator.npc_id = npc_id  # Set npc_id for data store sync
 	add_child(_state_indicator)
-	
-	# Create debug label if enabled
-	if debug_show_velocity:
-		_setup_debug_label()
 	
 	# Explicitly set initial idle state AFTER a frame to override any stale state
 	call_deferred("_set_initial_idle_state")
@@ -178,55 +171,6 @@ func _set_initial_idle_state() -> void:
 		_data_store.update_npc_state(npc_id, "idle", current_dialogue)
 
 
-func _setup_debug_label() -> void:
-	_debug_label = Label3D.new()
-	_debug_label.position = Vector3(0, 3.0, 0)
-	_debug_label.pixel_size = 0.01
-	_debug_label.font_size = 32
-	_debug_label.outline_size = 8
-	_debug_label.modulate = Color.WHITE
-	_debug_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	add_child(_debug_label)
-	_debug_last_pos = global_position
-
-
-func _update_debug_label(delta: float) -> void:
-	# Skip first few frames to let positions stabilize
-	_debug_frames_ready += 1
-	if _debug_frames_ready < 5:
-		_debug_last_pos = global_position
-		return
-	
-	# Calculate actual movement (position change)
-	var pos_delta = global_position - _debug_last_pos
-	var horizontal_delta = Vector3(pos_delta.x, 0, pos_delta.z)
-	var horizontal_speed = horizontal_delta.length() / delta if delta > 0 else 0.0
-	
-	# Only detect sliding in states that SHOULD be stationary
-	var stationary_states = ["idle", "frustrated", "caught", "tired", "gave_up"]
-	var should_be_stationary = current_state in stationary_states
-	
-	# Detect sliding: moving when should be stationary
-	# Ignore unrealistic speeds (> 10 m/s = false positive)
-	var is_sliding = should_be_stationary and horizontal_speed > 0.05 and horizontal_speed < 10.0
-	
-	if is_sliding and not _debug_slide_detected:
-		_debug_slide_detected = true
-		print("[SLIDE DETECTED] State: %s | Move: %.3f m/s" % [current_state, horizontal_speed])
-	elif not is_sliding:
-		_debug_slide_detected = false
-	
-	# Update label
-	var slide_warning = " ⚠️ SLIDING!" if is_sliding else ""
-	_debug_label.text = "State: %s\nMove: %.2f%s" % [
-		current_state,
-		horizontal_speed,
-		slide_warning
-	]
-	_debug_label.modulate = Color.RED if is_sliding else Color.WHITE
-	
-	_debug_last_pos = global_position
-	
 
 func _exit_tree() -> void:
 	if not Engine.is_editor_hint():
@@ -240,7 +184,14 @@ func _npc_physics_process(delta: float) -> void:
 	if _startup_grace > 0:
 		_startup_grace -= delta
 		velocity = Vector3.ZERO  # Prevent any movement during grace period
-		return
+		
+		# Activate BTPlayer when grace period ends (unless debug_freeze_ai is on)
+		if _startup_grace <= 0 and not debug_freeze_ai:
+			var bt_player = get_node_or_null("BTPlayer")
+			if bt_player:
+				bt_player.set_active(true)
+		else:
+			return  # Still in grace period, skip the rest
 	
 	# Always update perception (for detection feedback)
 	perception.update(delta)
@@ -269,9 +220,8 @@ func _npc_physics_process(delta: float) -> void:
 		if _suspicious_timer >= SUSPICIOUS_TIMEOUT:
 			set_current_state("idle")
 	
-	# Debug: detect and display sliding
-	if debug_show_velocity and _debug_label:
-		_update_debug_label(delta)
+	# Update animation based on state + velocity (single source of truth)
+	animator.update(current_state, velocity)
 
 # ═══════════════════════════════════════
 # PERCEPTION UPDATES
@@ -293,8 +243,9 @@ func _update_player_perception(delta: float) -> void:
 		perception.process_visible_target(_player, visibility, delta)
 		
 		# Continuous theft detection: if we can see the player AND they're holding an item
-		# and we haven't already maxed out suspicion, react to the theft
-		if perception.target_is_holding_item and emotional_state.suspicion < 95.0:
+		# Don't re-trigger if on cooldown (just caught them) or already at max suspicion
+		var on_cooldown = _is_chase_on_cooldown()
+		if perception.target_is_holding_item and emotional_state.suspicion < 95.0 and not on_cooldown:
 			emotional_state.on_saw_stealing()  # Max suspicion (100)
 
 # ═══════════════════════════════════════
@@ -358,7 +309,7 @@ func _on_target_spotted(target_node: Node3D, spot_type: String) -> void:
 				emotional_state.on_saw_stealing()  # Max suspicion (100) + temper boost
 				set_current_state("alert")
 			else:
-				emotional_state.on_saw_target()
+				emotional_state.on_saw_player()
 				set_current_state("alert")
 		"confirmed":
 			if target_holding_item:
@@ -372,7 +323,7 @@ func _on_target_spotted(target_node: Node3D, spot_type: String) -> void:
 	_update_blackboard("target_last_position", target_node.global_position)
 
 func _on_target_lost(_target: Node3D) -> void:
-	emotional_state.on_target_lost()
+	emotional_state.on_lost_sight()
 	_update_blackboard("target", null)
 	
 	# Stop tracking with head (will smoothly return to neutral)
@@ -466,8 +417,7 @@ func on_item_stolen(_item: Node3D) -> void:
 
 func on_chase_started() -> void:
 	set_current_state("chasing")
-	_try_play_animation(["default/Sprint_Loop", "default/Jog_Fwd_Loop"])
-	# Note: on_chasing(delta) should be called each frame during chase via _physics_process
+	# Animation handled by _update_animation()
 
 var _chase_end_handled: bool = false  # Guard against double celebration
 
@@ -480,14 +430,12 @@ func on_chase_ended(success: bool) -> void:
 	if success:
 		emotional_state.on_chase_success()
 		set_current_state("caught")
-		_try_play_animation(["default/Celebration", "default/Idle_Loop"])
 		social.signal_all_clear()
-		# Note: chase_player handles the 2s celebration wait before returning SUCCESS
-		# State will naturally transition when BT moves to wander/idle
+		# Animation handled by _update_animation()
 	else:
 		emotional_state.on_chase_failed()
 		set_current_state("frustrated")
-		_try_play_animation(["default/Idle_Tired_Loop", "default/Idle_Loop"])
+		# Animation handled by _update_animation()
 	
 	# Reset guard after handling complete
 	_chase_end_handled = false
@@ -495,7 +443,7 @@ func on_chase_ended(success: bool) -> void:
 func on_returned_home() -> void:
 	emotional_state.on_returned_home()
 	set_current_state("idle")
-	_try_play_animation(["default/Idle_Loop", "default/Idle"])
+	# Animation handled by _update_animation()
 	
 	# Clear head tracking when back to idle
 	if _head_look_at:
@@ -521,9 +469,8 @@ func set_current_state(state: String) -> void:
 		elif old_state == "chasing":
 			_head_look_at.enabled = true
 	
-	# Play animation based on new state
+	# Update UI indicators (animation handled by _update_animation in physics process)
 	if state != old_state:
-		_play_state_animation(state)
 		_update_state_indicator(state)
 		
 		# Update perception range color
@@ -606,6 +553,13 @@ func _update_chase_cooldown(delta: float) -> void:
 	else:
 		bb.set_var(&"chase_cooldown_timer", timer)
 
+func _is_chase_on_cooldown() -> bool:
+	var bt_player: BTPlayer = get_node_or_null("BTPlayer")
+	if not bt_player:
+		return false
+	var bb = bt_player.get_blackboard()
+	return bb.get_var(&"chase_on_cooldown", false)
+
 # ═══════════════════════════════════════
 # BLACKBOARD HELPERS
 # ═══════════════════════════════════════
@@ -623,51 +577,6 @@ func _update_blackboard(key: StringName, value: Variant) -> void:
 	var bt_player: BTPlayer = get_node_or_null("BTPlayer")
 	if bt_player:
 		bt_player.get_blackboard().set_var(key, value)
-
-# ═══════════════════════════════════════
-# ANIMATION HELPERS
-# ═══════════════════════════════════════
-
-func _play_animation(anim_name: String) -> void:
-	var anim: AnimationPlayer = get_node_or_null("AnimationPlayer")
-	if anim and anim.has_animation(anim_name):
-		anim.play(anim_name)
-
-func _try_play_animation(anim_names: Array) -> void:
-	var anim: AnimationPlayer = get_node_or_null("AnimationPlayer")
-	if not anim:
-		return
-	for anim_name in anim_names:
-		if anim.has_animation(anim_name):
-			anim.play(anim_name)
-			return
-	# Animation not found - silent fallback
-	pass
-
-func _play_idle_animation() -> void:
-	_try_play_animation(["default/Idle"])
-
-func _play_state_animation(state: String) -> void:
-	match state:
-		"idle":
-			_try_play_animation(["default/Idle"])
-		"alert":
-			_try_play_animation(["default/Idle_LookAround", "default/Idle"])
-		"investigating":
-			_try_play_animation(["default/Walk", "default/Jog_Fwd"])
-		"chasing":
-			_try_play_animation(["default/Sprint", "default/Jog_Fwd"])
-		"returning":
-			_try_play_animation(["default/Walk", "default/Jog_Fwd"])
-		"frustrated":
-			_try_play_animation(["default/Idle_Tired", "default/Idle"])
-
-func _update_editor_animation() -> void:
-	if not is_inside_tree():
-		return
-	var anim: AnimationPlayer = get_node_or_null("AnimationPlayer")
-	if anim and play_in_editor:
-		anim.play("default/Idle")
 
 # ═══════════════════════════════════════
 # PUBLIC API (for BT conditions)

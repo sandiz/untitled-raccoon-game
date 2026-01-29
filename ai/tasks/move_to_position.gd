@@ -2,27 +2,27 @@
 extends BTAction
 ## Moves agent to a target position. Returns RUNNING while moving.
 ## Note: Checks will_chase for responsiveness since BTSelector doesn't re-evaluate during RUNNING.
+##
+## RESPONSIBILITY: Sets velocity and rotation only. NPC handles animation.
 
 @export var position_var: StringName = &"wander_target"
 @export var speed: float = 1.5
 @export var arrival_distance: float = 0.5
 
-var _walk_anim_playing: bool = false
-
 func _generate_name() -> String:
 	return "MoveToPosition (speed: %s)" % speed
 
 func _enter() -> void:
-	_walk_anim_playing = false
-	# Don't start walk animation yet - wait for valid direction
+	agent.velocity = Vector3.ZERO
 
 func _tick(delta: float) -> Status:
-	# Abort check for responsiveness (only if emotional_state exists in blackboard)
-	if blackboard.has_var(&"emotional_state"):
-		var emo = blackboard.get_var(&"emotional_state")
-		if emo and emo.will_chase:
-			agent.velocity = Vector3.ZERO
-			return FAILURE
+	# Abort check for responsiveness - check if we should chase
+	var emo = blackboard.get_var(&"emotional_state")
+	if not emo:
+		emo = agent.get("emotional_state")
+	if emo and emo.will_chase:
+		agent.velocity = Vector3.ZERO
+		return FAILURE
 	
 	var target_pos: Vector3 = blackboard.get_var(position_var, agent.global_position)
 	var distance = agent.global_position.distance_to(target_pos)
@@ -35,7 +35,7 @@ func _tick(delta: float) -> Status:
 	if nav:
 		nav.target_position = target_pos
 		
-		# Wait for path to be computed (don't check is_finished on first frame)
+		# Wait for path to be computed
 		if nav.is_navigation_finished() and distance < arrival_distance * 2:
 			agent.velocity = Vector3.ZERO
 			return SUCCESS
@@ -45,36 +45,21 @@ func _tick(delta: float) -> Status:
 		direction.y = 0
 		
 		if direction.length_squared() < 0.001:
-			# No valid direction - path might not be ready yet, stay idle
+			# No valid direction - path might not be ready yet
 			agent.velocity = Vector3.ZERO
 			return RUNNING
 		
-		# Now we have a valid direction - start walk animation if not already
-		if not _walk_anim_playing:
-			_walk_anim_playing = true
-			# Set walking state
-			if agent.has_method("set_current_state"):
-				agent.set_current_state("walking")
-			var anim: AnimationPlayer = agent.get_node_or_null("AnimationPlayer")
-			if anim:
-				for anim_name in ["default/Walk", "default/Jog_Fwd"]:
-					if anim.has_animation(anim_name):
-						anim.play(anim_name)
-						break
-		
-		# Rotate toward target FIRST, then move
+		# Rotate toward target
 		var target_angle = atan2(direction.x, direction.z)
 		var angle_diff = abs(wrapf(target_angle - agent.rotation.y, -PI, PI))
-		
-		# Rotate faster, only move when mostly facing target
 		agent.rotation.y = lerp_angle(agent.rotation.y, target_angle, delta * 12.0)
 		
-		if angle_diff < deg_to_rad(45):  # Only move when within 45 degrees of target
+		# Only move when mostly facing target (within 45 degrees)
+		if angle_diff < deg_to_rad(45):
 			agent.velocity = direction * speed
 		else:
 			agent.velocity = Vector3.ZERO  # Just rotate, don't move yet
 	else:
-		# No nav agent - just stop
 		agent.velocity = Vector3.ZERO
 		return SUCCESS
 	
@@ -82,4 +67,3 @@ func _tick(delta: float) -> Status:
 
 func _exit() -> void:
 	agent.velocity = Vector3.ZERO
-	_walk_anim_playing = false

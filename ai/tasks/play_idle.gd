@@ -1,8 +1,9 @@
 @tool
 extends BTAction
-## Plays idle animation and ensures velocity is zeroed before returning SUCCESS.
-
-@export var idle_animation: StringName = &"default/Idle"
+## Ensures velocity is zeroed for a couple frames before proceeding.
+## This prevents sliding from residual movement.
+##
+## RESPONSIBILITY: Sets velocity to zero only. NPC handles animation.
 
 var _frames_waited: int = 0
 
@@ -11,22 +12,16 @@ func _generate_name() -> String:
 
 func _enter() -> void:
 	_frames_waited = 0
-	# Stop movement (shopkeeper's _physics_process will call move_and_slide)
 	agent.velocity = Vector3.ZERO
-	
-	# Set idle state
-	if agent.has_method("set_current_state"):
-		agent.set_current_state("idle")
-	
-	var anim: AnimationPlayer = agent.get_node_or_null("AnimationPlayer")
-	if anim:
-		for anim_name in ["default/Idle", "default/Idle_LookAround"]:
-			if anim.has_animation(anim_name):
-				anim.play(anim_name)
-				break
 
 func _tick(_delta: float) -> Status:
-	# Ensure velocity stays zero for at least 2 frames to prevent sliding
+	# Abort check for responsiveness - check if we should chase
+	var emo = blackboard.get_var(&"emotional_state")
+	if not emo:
+		emo = agent.get("emotional_state")
+	if emo and emo.will_chase:
+		return FAILURE
+	
 	agent.velocity = Vector3.ZERO
 	_frames_waited += 1
 	if _frames_waited >= 2:
