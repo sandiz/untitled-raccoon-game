@@ -11,8 +11,8 @@ extends Node3D
 @export var vision_start_offset: float = 1.0  # Start cone 1m ahead of feet
 @export var vision_color: Color = Color(0.2, 0.75, 0.3, 0.5)  # Vivid green (idle)
 @export var vision_outline_color: Color = Color(0.1, 0.6, 0.2, 0.9)  # Strong green outline
-@export var hearing_color: Color = Color(0.6, 0.2, 0.7, 0.25)  # Vivid violet - contrasts with green
-@export var show_hearing: bool = false  # Disabled for debugging
+@export var hearing_color: Color = Color(0.6, 0.2, 0.7, 0.5)  # Vivid violet - contrasts with green
+@export var show_hearing: bool = true
 @export var fade_duration: float = 0.25  # How long fade takes
 
 # State colors - more saturated for daytime visibility
@@ -45,13 +45,12 @@ var _current_alpha: float = 0.0  # Start hidden
 # Store target alphas for each material
 var _vision_target_alpha: float = 0.5
 var _outline_target_alpha: float = 0.9
-var _hearing_target_alpha: float = 0.25
+var _hearing_target_alpha: float = 0.4  # Increased for visibility
 
 
 func _ready() -> void:
-	# Hearing circle disabled - causes color blending issues with vision cone
-	#if show_hearing:
-	#	_create_hearing_circle()
+	if show_hearing:
+		_create_hearing_circle()
 	_create_vision_cone()
 	_create_vision_outline()
 	
@@ -73,23 +72,48 @@ func _input(event: InputEvent) -> void:
 func _create_hearing_circle() -> void:
 	_hearing_mesh = MeshInstance3D.new()
 	
-	var mesh = CylinderMesh.new()
-	mesh.top_radius = hearing_range
-	mesh.bottom_radius = hearing_range
-	mesh.height = 0.02
-	mesh.radial_segments = 64  # High count for smooth circle
-	
+	# Use ImmediateMesh like vision cone for consistency
+	var mesh = ImmediateMesh.new()
 	_hearing_mesh.mesh = mesh
-	_hearing_mesh.position.y = 0.01
+	_hearing_mesh.position.y = 0.01  # Below vision cone
 	
 	var mat = StandardMaterial3D.new()
 	mat.albedo_color = hearing_color
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	mat.render_priority = -1  # Render BEFORE vision cone (behind)
 	_hearing_mesh.material_override = mat
 	
+	_update_hearing_circle_mesh()
 	add_child(_hearing_mesh)
+
+
+func _update_hearing_circle_mesh() -> void:
+	var mesh = _hearing_mesh.mesh as ImmediateMesh
+	if not mesh:
+		return
+	
+	mesh.clear_surfaces()
+	mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+	
+	var segments = 64  # Smooth circle
+	var center = Vector3.ZERO
+	
+	# Fan triangles from center to edge (CCW = faces up)
+	for i in range(segments):
+		var angle1 = TAU * i / segments
+		var angle2 = TAU * (i + 1) / segments
+		
+		var edge1 = Vector3(cos(angle1) * hearing_range, 0, sin(angle1) * hearing_range)
+		var edge2 = Vector3(cos(angle2) * hearing_range, 0, sin(angle2) * hearing_range)
+		
+		# CCW winding: center -> edge1 -> edge2 (faces up)
+		mesh.surface_add_vertex(center)
+		mesh.surface_add_vertex(edge1)
+		mesh.surface_add_vertex(edge2)
+	
+	mesh.surface_end()
 
 
 func _create_vision_cone() -> void:
@@ -105,6 +129,7 @@ func _create_vision_cone() -> void:
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	mat.render_priority = 0  # Render AFTER hearing (on top)
 	_vision_mesh.material_override = mat
 	
 	_update_vision_cone_mesh()
@@ -123,6 +148,7 @@ func _create_vision_outline() -> void:
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	mat.render_priority = 1  # Render last (outline on very top)
 	_vision_outline.material_override = mat
 	
 	_update_vision_outline_mesh()

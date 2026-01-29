@@ -32,6 +32,14 @@ ui/             # info panel, speech bubble
 
 ## Critical Rules
 
+### Code Reuse First
+**MAXIM: Don't add new code unless you have to.**
+- Always check if exact or nearby implementation exists first
+- Search codebase before writing new functions
+- Reuse existing patterns, extract shared logic
+- Copy-paste with modification > new abstraction (for small code)
+- If similar code exists in 2+ places, consider extracting to shared function
+
 ### NPC Movement - Use BaseNPC
 ```gdscript
 extends BaseNPC  # NOT CharacterBody3D!
@@ -66,6 +74,13 @@ var emo = blackboard.get_var(&"emotional_state")  # Not agent.emotional_state
 # Stopping movement - must call move_and_slide after
 agent.velocity = Vector3.ZERO
 agent.move_and_slide()
+
+# Triangle winding for ImmediateMesh (CCW = faces up when viewed from +Y)
+# For ground indicators: vertex order matters!
+mesh.surface_add_vertex(center)
+mesh.surface_add_vertex(edge1)  # First edge (smaller angle)
+mesh.surface_add_vertex(edge2)  # Second edge (larger angle)
+# NOT center -> edge2 -> edge1 (that faces DOWN)
 ```
 
 ### Collision Layers

@@ -153,6 +153,7 @@ func _setup_sprite() -> void:
 	_sprite = Sprite3D.new()
 	_sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_sprite.no_depth_test = true
+	_sprite.render_priority = 10  # Render on top of vision cone/outline
 	_sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	_sprite.pixel_size = 0.004
 	_sprite.position = Vector3(0, height_offset, 0)
