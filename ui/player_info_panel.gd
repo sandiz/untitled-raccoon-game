@@ -6,12 +6,18 @@ extends BaseWidget
 const PLAYER_NAME: String = "Rascal"
 const PLAYER_TITLE: String = "The Sneaky Raccoon"
 
+# FPS thresholds
+const FPS_HIGH := 55  # Green
+const FPS_MED := 30   # Yellow
+# Below FPS_MED = Red
+
 var _container: PanelContainer
 var _portrait_container: PanelContainer
 var _portrait: TextureRect
 var _name_label: Label
 var _title_label: Label
 var _state_label: Label
+var _fps_label: Label
 var _current_state: String = "exploring"
 
 
@@ -22,6 +28,29 @@ func _ready() -> void:
 	modulate.a = 1.0
 
 
+func _process(_delta: float) -> void:
+	_update_fps()
+
+
+func _update_fps() -> void:
+	if not _fps_label:
+		return
+	
+	var fps := int(Engine.get_frames_per_second())
+	_fps_label.text = "%d FPS" % fps
+	
+	# Color based on performance
+	var color: Color
+	if fps >= FPS_HIGH:
+		color = Color(0.3, 0.9, 0.3)  # Green
+	elif fps >= FPS_MED:
+		color = Color(0.95, 0.8, 0.2)  # Yellow
+	else:
+		color = Color(1.0, 0.3, 0.3)  # Red
+	
+	_fps_label.add_theme_color_override("font_color", color)
+
+
 func _build_ui() -> void:
 	# Position at bottom-left
 	anchor_left = 0.0
@@ -29,12 +58,24 @@ func _build_ui() -> void:
 	anchor_right = 0.0
 	anchor_bottom = 1.0
 	offset_left = _s(10)
-	offset_top = -_s(110)
+	offset_top = -_s(130)  # Extra space for FPS label
 	offset_right = _s(310)
 	offset_bottom = -_s(20)
 	
+	# FPS label above the panel
+	_fps_label = Label.new()
+	_fps_label.text = "60 FPS"
+	_fps_label.position.x = _s(8)  # Left padding to align with panel content
+	_fps_label.add_theme_font_size_override("font_size", _s(12))
+	_fps_label.add_theme_color_override("font_color", Color(0.3, 0.9, 0.3))
+	var font = load("res://assets/fonts/JetBrainsMono.ttf")
+	if font:
+		_fps_label.add_theme_font_override("font", font)
+	add_child(_fps_label)
+	
 	# Main container - same width as NPC panel
 	_container = PanelContainer.new()
+	_container.position.y = _s(18)  # Below FPS label
 	_container.custom_minimum_size = Vector2(_s(300), 0)
 	_container.add_theme_stylebox_override("panel", _create_panel_style())
 	add_child(_container)

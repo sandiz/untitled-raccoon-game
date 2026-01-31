@@ -20,9 +20,15 @@ var nearby_items: Array = []  # Items in pickup range
 var _last_honk_time: float = 0.0
 var _honk_player: AudioStreamPlayer3D = null
 
-## Debug: enable WASD movement for testing
-@export var debug_movement: bool = true
+## Debug: enable WASD movement for testing (disabled - use right-click to move)
+@export var debug_movement: bool = false
 @export var debug_speed: float = 5.0
+
+## Click-to-move system
+var _nav_agent: NavigationAgent3D = null
+var _click_indicator: ClickIndicator = null
+var _is_moving: bool = false
+@export var move_speed: float = 4.0
 
 ## Debug item for testing theft detection
 var _debug_item: Node3D = null
@@ -37,6 +43,7 @@ func _ready() -> void:
 	_setup_pickup_area()
 	_setup_pickup_prompt()
 	_setup_honk_audio()
+	_setup_click_to_move()
 	
 	# Connect to NPC selection to show ring when no NPC selected
 	call_deferred("_connect_to_data_store")
@@ -239,12 +246,22 @@ func _input(event: InputEvent) -> void:
 	# Debug: T key toggles a fake item for testing theft detection
 	if event is InputEventKey and event.pressed and event.keycode == KEY_T:
 		_toggle_debug_item()
+	
+	# Right-click to move
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+		_handle_click_to_move(event.position)
 
 
 func _physics_process(delta: float) -> void:
-	if not debug_movement:
-		return
-	
+	# Debug WASD movement (disabled by default)
+	if debug_movement:
+		_handle_debug_movement(delta)
+	else:
+		# Click-to-move navigation
+		_handle_nav_movement(delta)
+
+
+func _handle_debug_movement(delta: float) -> void:
 	# Simple WASD movement for testing
 	var input_dir = Vector3.ZERO
 	if Input.is_key_pressed(KEY_W):
@@ -273,6 +290,91 @@ func _physics_process(delta: float) -> void:
 		velocity.y -= 9.8 * delta
 	
 	move_and_slide()
+
+
+func _handle_nav_movement(delta: float) -> void:
+	if not _nav_agent or not _is_moving:
+		# Apply gravity even when not moving
+		if not is_on_floor():
+			velocity.y -= 9.8 * delta
+			move_and_slide()
+		return
+	
+	if _nav_agent.is_navigation_finished():
+		_is_moving = false
+		velocity.x = 0
+		velocity.z = 0
+		# Indicator auto-hides after its animation completes
+		return
+	
+	var next_pos = _nav_agent.get_next_path_position()
+	var direction = (next_pos - global_position).normalized()
+	direction.y = 0  # Keep movement horizontal
+	
+	velocity.x = direction.x * move_speed
+	velocity.z = direction.z * move_speed
+	
+	# Face movement direction
+	if direction.length() > 0.01:
+		var target_angle = atan2(direction.x, direction.z)
+		rotation.y = lerp_angle(rotation.y, target_angle, 0.15)
+	
+	# Gravity
+	if not is_on_floor():
+		velocity.y -= 9.8 * delta
+	
+	move_and_slide()
+
+
+# ═══════════════════════════════════════
+# CLICK-TO-MOVE SYSTEM
+# ═══════════════════════════════════════
+
+func _setup_click_to_move() -> void:
+	# Get reference to NavigationAgent3D (should be in scene)
+	_nav_agent = get_node_or_null("NavigationAgent3D")
+	if not _nav_agent:
+		push_warning("Player: NavigationAgent3D not found, click-to-move disabled")
+		return
+	
+	# Create click indicator (animated shrinking ring)
+	_click_indicator = ClickIndicator.new()
+	_click_indicator.name = "ClickIndicator"
+	# Add to scene root so it stays at click position (deferred to avoid busy parent)
+	get_tree().current_scene.add_child.call_deferred(_click_indicator)
+
+
+func _handle_click_to_move(screen_pos: Vector2) -> void:
+	if not _nav_agent:
+		return
+	
+	# Raycast from camera to find ground position
+	var camera = get_viewport().get_camera_3d()
+	if not camera:
+		return
+	
+	var from = camera.project_ray_origin(screen_pos)
+	var dir = camera.project_ray_normal(screen_pos)
+	var to = from + dir * 1000.0
+	
+	var space_state = get_world_3d().direct_space_state
+	var query = PhysicsRayQueryParameters3D.create(from, to)
+	query.collision_mask = 1  # Only hit environment/ground
+	query.exclude = [self]
+	
+	var result = space_state.intersect_ray(query)
+	if result.is_empty():
+		return
+	
+	var target_pos = result.position
+	
+	# Set navigation target
+	_nav_agent.target_position = target_pos
+	_is_moving = true
+	
+	# Show animated indicator at target
+	if _click_indicator and _click_indicator.is_inside_tree():
+		_click_indicator.show_at(target_pos)
 
 
 # ═══════════════════════════════════════

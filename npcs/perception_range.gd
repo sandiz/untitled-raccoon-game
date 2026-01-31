@@ -10,7 +10,6 @@ extends Node3D
 @export var hearing_range: float = 10.0  # Same as vision
 @export var vision_start_offset: float = 1.0  # Start cone 1m ahead of feet
 @export var vision_color: Color = Color(0.2, 0.75, 0.3, 0.5)  # Vivid green (idle)
-@export var vision_outline_color: Color = Color(0.1, 0.6, 0.2, 0.9)  # Strong green outline
 @export var hearing_color: Color = Color(0.5, 0.5, 0.5, 0.15)  # Subtle gray - secondary to vision
 @export var show_hearing: bool = true
 @export var fade_duration: float = 0.25  # How long fade takes
@@ -25,17 +24,8 @@ const STATE_COLORS := {
 	"chasing": Color(1.0, 0.15, 0.1, 0.65),    # Bright red
 }
 
-const STATE_OUTLINE_COLORS := {
-	"idle": Color(0.1, 0.6, 0.2, 0.9),         # Strong green
-	"curious": Color(1.0, 0.65, 0.0, 0.95),    # Strong amber
-	"suspicious": Color(1.0, 0.65, 0.0, 0.95), # Strong amber
-	"alert": Color(1.0, 0.4, 0.0, 0.95),       # Strong orange
-	"investigating": Color(1.0, 0.4, 0.0, 0.95), # Strong orange
-	"chasing": Color(1.0, 0.1, 0.05, 1.0),     # Strong red
-}
 
 var _vision_mesh: MeshInstance3D
-var _vision_outline: MeshInstance3D
 var _hearing_mesh: MeshInstance3D
 var _visible: bool = true  # V key toggle
 var _is_selected: bool = false
@@ -44,7 +34,6 @@ var _current_alpha: float = 0.0  # Start hidden
 
 # Store target alphas for each material
 var _vision_target_alpha: float = 0.5
-var _outline_target_alpha: float = 0.9
 var _hearing_target_alpha: float = 0.15  # Subtle - secondary to vision
 
 
@@ -52,7 +41,6 @@ func _ready() -> void:
 	if show_hearing:
 		_create_hearing_circle()
 	_create_vision_cone()
-	_create_vision_outline()
 	
 	# Start fully transparent
 	_set_alpha(0.0)
@@ -136,58 +124,6 @@ func _create_vision_cone() -> void:
 	add_child(_vision_mesh)
 
 
-func _create_vision_outline() -> void:
-	_vision_outline = MeshInstance3D.new()
-	
-	var mesh = ImmediateMesh.new()
-	_vision_outline.mesh = mesh
-	_vision_outline.position.y = 0.04
-	
-	var mat = StandardMaterial3D.new()
-	mat.albedo_color = vision_outline_color
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
-	mat.render_priority = 1  # Render last (outline on very top)
-	_vision_outline.material_override = mat
-	
-	_update_vision_outline_mesh()
-	add_child(_vision_outline)
-
-
-func _update_vision_outline_mesh() -> void:
-	var mesh = _vision_outline.mesh as ImmediateMesh
-	if not mesh:
-		return
-	
-	mesh.clear_surfaces()
-	mesh.surface_begin(Mesh.PRIMITIVE_LINE_STRIP)
-	
-	var half_angle = deg_to_rad(vision_angle / 2.0)
-	var segments = 48  # High count for smooth arc
-	
-	# Calculate left/right edge points at start offset (1m ahead of feet)
-	var left_start = Vector3(sin(-half_angle) * vision_start_offset, 0, cos(-half_angle) * vision_start_offset)
-	var right_start = Vector3(sin(half_angle) * vision_start_offset, 0, cos(half_angle) * vision_start_offset)
-	
-	# Start at left edge of the offset start
-	mesh.surface_add_vertex(left_start)
-	
-	# Arc edge at full range
-	for i in range(segments + 1):
-		var angle = -half_angle + (half_angle * 2.0 * i / segments)
-		var p = Vector3(sin(angle) * vision_range, 0, cos(angle) * vision_range)
-		mesh.surface_add_vertex(p)
-	
-	# Back to right edge of the offset start
-	mesh.surface_add_vertex(right_start)
-	
-	# Close the gap - draw line across the start arc
-	mesh.surface_add_vertex(left_start)
-	
-	mesh.surface_end()
-
-
 func _update_vision_cone_mesh() -> void:
 	var mesh = _vision_mesh.mesh as ImmediateMesh
 	if not mesh:
@@ -229,8 +165,6 @@ func _update_vision_cone_mesh() -> void:
 func _update_visibility() -> void:
 	if _vision_mesh:
 		_vision_mesh.visible = _visible and _is_selected
-	if _vision_outline:
-		_vision_outline.visible = _visible and _is_selected
 	if _hearing_mesh:
 		_hearing_mesh.visible = _visible and show_hearing and _is_selected
 
@@ -243,10 +177,6 @@ func _set_alpha(alpha: float) -> void:
 		color.a = _vision_target_alpha * alpha
 		_vision_mesh.material_override.albedo_color = color
 	
-	if _vision_outline and _vision_outline.material_override:
-		var color = _vision_outline.material_override.albedo_color
-		color.a = _outline_target_alpha * alpha
-		_vision_outline.material_override.albedo_color = color
 	
 	if _hearing_mesh and _hearing_mesh.material_override:
 		var color = _hearing_mesh.material_override.albedo_color
@@ -286,8 +216,6 @@ func set_ranges(vision: float, hearing: float, angle: float = 90.0) -> void:
 	
 	if _vision_mesh:
 		_update_vision_cone_mesh()
-	if _vision_outline:
-		_update_vision_outline_mesh()
 
 
 func set_state(state: String) -> void:
@@ -296,17 +224,12 @@ func set_state(state: String) -> void:
 		return
 	
 	var fill_color = STATE_COLORS[state]
-	var outline_color = STATE_OUTLINE_COLORS[state]
-	
-	# Store target alphas from the state colors
+# Store target alpha from the state color
 	_vision_target_alpha = fill_color.a
-	_outline_target_alpha = outline_color.a
 	
 	# Apply colors (alpha will be modulated by _current_alpha)
 	if _vision_mesh and _vision_mesh.material_override:
 		fill_color.a = _vision_target_alpha * _current_alpha
 		_vision_mesh.material_override.albedo_color = fill_color
 	
-	if _vision_outline and _vision_outline.material_override:
-		outline_color.a = _outline_target_alpha * _current_alpha
-		_vision_outline.material_override.albedo_color = outline_color
+

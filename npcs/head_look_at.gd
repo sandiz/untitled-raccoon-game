@@ -5,6 +5,7 @@ extends Node
 @export var skeleton_path: NodePath
 @export var max_angle: float = 70.0  # Max head turn in degrees
 @export var vision_cone_angle: float = 90.0  # Only track targets within this angle from forward
+@export var vision_range: float = 10.0  # Only track targets within this distance
 @export var turn_speed: float = 8.0  # How fast head turns
 @export var show_debug_line: bool = true  # Toggle debug line visibility
 
@@ -101,20 +102,24 @@ func _process(delta: float) -> void:
 	var head_bone_pose := _skeleton.get_bone_global_pose(_head_idx)
 	var head_pos := _skeleton.to_global(head_bone_pose.origin)
 	
-	# Check if target is within vision cone (don't track targets behind NPC)
+	# Check if target is within vision cone (don't track targets behind NPC or too far)
 	var in_vision_cone := false
+	var in_range := false
 	var angle := 0.0
+	var distance := 0.0
 	var dir_to_target := Vector3.ZERO
 	var parent_3d := get_parent() as Node3D
 	if has_target:
 		dir_to_target = (look_pos - head_pos).normalized()
+		distance = head_pos.distance_to(look_pos)
+		in_range = distance <= vision_range
 		if parent_3d:
 			var npc_forward := parent_3d.global_transform.basis.z.normalized()
 			angle = rad_to_deg(npc_forward.angle_to(dir_to_target))
 			in_vision_cone = angle <= vision_cone_angle / 2.0
 	
-	# Only track if within vision cone
-	var should_track := enabled and has_target and in_vision_cone
+	# Only track if within vision cone AND within range
+	var should_track := enabled and has_target and in_vision_cone and in_range
 	
 	# Debug line uses body midpoints (not head height) so it doesn't float
 	var npc_body_mid := parent_3d.global_position + Vector3(0, 0.9, 0) if parent_3d else head_pos

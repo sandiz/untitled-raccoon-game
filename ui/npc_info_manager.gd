@@ -32,8 +32,8 @@ func _setup() -> void:
 	# Connect to selection changes
 	_data_store.selection_changed.connect(_on_selection_changed)
 	
-	# Auto-select closest NPC after 2 seconds
-	get_tree().create_timer(2.0).timeout.connect(func(): _auto_select_closest_npc())
+	# Disabled: Auto-select closest NPC after 2 seconds
+	# get_tree().create_timer(2.0).timeout.connect(func(): _auto_select_closest_npc())
 
 
 func _input(event: InputEvent) -> void:

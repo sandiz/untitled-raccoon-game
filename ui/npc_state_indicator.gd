@@ -78,6 +78,7 @@ func _setup_viewport() -> void:
 	# Create SubViewport to render 2D UI
 	_viewport = SubViewport.new()
 	_viewport.transparent_bg = true
+	# Note: msaa_2d not supported on GLES3, skip for compatibility
 	_viewport.size = Vector2i(_s(600), _s(120))
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	add_child(_viewport)
