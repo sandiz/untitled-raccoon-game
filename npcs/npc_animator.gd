@@ -1,7 +1,7 @@
-class_name ShopkeeperAnimator
+class_name NPCAnimator
 extends RefCounted
-## Handles all animation logic for the shopkeeper NPC.
-## Extracted from shopkeeper_npc.gd for cleaner separation.
+## Handles all animation logic for NPCs.
+## Generic animator that works with any NPC using the standard animation library.
 
 # ═══════════════════════════════════════
 # CONFIGURATION

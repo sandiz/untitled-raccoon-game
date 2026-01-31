@@ -1,6 +1,8 @@
 @tool
+class_name GenericNPC
 extends BaseNPC
-## Shopkeeper NPC with full emotional state, perception, and social systems.
+## Generic NPC with full emotional state, perception, and social systems.
+## Use with NPCPersonality resource to customize behavior and dialogue.
 
 # Using global classes: NPCEmotionalState, NPCPerception, NPCSocial
 
@@ -18,7 +20,7 @@ var perception: NPCPerception = NPCPerception.new()
 var social: NPCSocial = NPCSocial.new()
 
 ## Animation controller component
-var animator: ShopkeeperAnimator = ShopkeeperAnimator.new()
+var animator: NPCAnimator = NPCAnimator.new()
 
 # ═══════════════════════════════════════
 # STATE
@@ -88,9 +90,12 @@ func _ready() -> void:
 		animator.play_editor_preview()
 		return
 	
-	# Load default personality if none assigned
+	# Warn if no personality assigned
 	if not personality:
-		personality = load("res://data/personalities/bernard.tres")
+		push_warning("GenericNPC '%s' has no personality assigned - using defaults" % name)
+		personality = NPCPersonality.new()
+		personality.npc_id = name.to_snake_case()
+		personality.display_name = name
 	
 	# Apply personality stat modifiers to emotional state (support both old and new names)
 	if personality:
