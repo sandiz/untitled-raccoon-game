@@ -49,6 +49,17 @@ func _slide_in() -> void:
 	tween.tween_property(self, "modulate:a", 1.0, 0.2)
 
 
+func _process(_delta: float) -> void:
+	# Update our minimum size for VBoxContainer
+	if _container:
+		var c_size = _container.get_combined_minimum_size()
+		if c_size != custom_minimum_size:
+			custom_minimum_size = c_size
+			# Force parent VBox to re-layout
+			var parent = get_parent()
+			if parent and parent is VBoxContainer:
+				parent.queue_sort()
+
 
 func _connect_day_night() -> void:
 	if day_night_cycle_path:
@@ -171,15 +182,6 @@ func _build_ui() -> void:
 	var speed_down = _create_button("-", _on_speed_down, 10)
 	speed_down.custom_minimum_size = Vector2(_s(18), _s(20))
 	_expanded_box.add_child(speed_down)
-
-
-func _process(_delta: float) -> void:
-	# Update our minimum size to match container for VBoxContainer parent
-	if _container:
-		var c_size = _container.get_combined_minimum_size()
-		if c_size != custom_minimum_size:
-			custom_minimum_size = c_size
-
 
 
 func _on_period_button_pressed(index: int) -> void:

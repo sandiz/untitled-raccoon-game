@@ -23,6 +23,18 @@ Shopkeeper wanders → Sees raccoon with item → Chases → Catch/Escape → Re
 
 ## Recent Changes (Session)
 
+### UI Improvements
+- **ScrollableWidgetContainer** - Base class for manual layout with scroll support
+  - Solves VBoxContainer sizing issues with dynamic content
+  - Auto-scroll when content exceeds viewport height
+  - See `ui/scrollable_widget_container.gd`
+- **RightPanelContainer** - Now extends ScrollableWidgetContainer, right-aligned
+- **Speech bubble fixes**:
+  - Tightened padding (top 8, bottom 10)
+  - Removed border for cleaner look
+  - Fixed tail artifact with `TEXTURE_FILTER_NEAREST` (no edge interpolation)
+  - Tail extends past viewport to avoid edge sampling
+
 ### Animation Extraction
 - Extracted 80+ lines of animation logic to `ShopkeeperAnimator` component
 - Clean separation: NPC handles state, Animator handles visuals

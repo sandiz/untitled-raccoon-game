@@ -56,24 +56,29 @@ func _input(event: InputEvent) -> void:
 
 
 func _process(_delta: float) -> void:
-	# Update our minimum size to match container for VBoxContainer parent
-	if _container:
-		var c_size = _container.get_combined_minimum_size()
-		if c_size != custom_minimum_size:
-			custom_minimum_size = c_size
+	# Update our minimum size for VBoxContainer parent
+	_update_size()
 	
 	# Update NPC stats if visible
 	if visible and _current_npc and is_instance_valid(_current_npc):
 		_update_stats()
 
 
+func _update_size() -> void:
+	if _container:
+		var c_size = _container.get_combined_minimum_size()
+		custom_minimum_size = c_size
+		size = c_size
+		# Also constrain the internal container to its minimum
+		_container.size = c_size
+
+
 func _build_ui() -> void:
-	# Don't expand vertically in VBoxContainer
-	size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	
-	# Container
+	# Container - don't let it expand to fill parent
 	_container = PanelContainer.new()
 	_container.custom_minimum_size.x = _s(340)
+	_container.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_container.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	_container.add_theme_stylebox_override("panel", _create_panel_style())
 	add_child(_container)
 	
@@ -279,6 +284,9 @@ func show_npc(npc: Node3D) -> void:
 		_name_label.text = npc.name
 		_title_label.text = "Unknown"
 		_portrait_container.visible = false
+	
+	# Force immediate size recalculation after portrait change
+	_update_size()
 	
 	# Get initial state from data store (single source of truth)
 	var npc_id_str = npc.get("npc_id") if npc.get("npc_id") else ""

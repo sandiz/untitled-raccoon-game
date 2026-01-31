@@ -1,23 +1,24 @@
 class_name RightPanelContainer
-extends VBoxContainer
-## Container for right-side UI widgets.
-## Fixed width, positioned at top-right.
+extends ScrollableWidgetContainer
+## Right-side widget container anchored to top-right of screen.
 
 const MARGIN := 20
-const SPACING := 10
-const WIDTH := 400
+const BOTTOM_MARGIN := 40
 
 
 func _ready() -> void:
-	add_theme_constant_override("separation", SPACING)
-	custom_minimum_size.x = WIDTH
-	size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	alignment = Alignment.RIGHT
+	spacing = 10
+	super._ready()
 
 
-func _process(_delta: float) -> void:
+func _get_max_height() -> float:
+	return get_viewport_rect().size.y - MARGIN * 2 - BOTTOM_MARGIN
+
+
+func _get_anchor_position(container_size: Vector2) -> Vector2:
 	var viewport_size = get_viewport_rect().size
-	# Position at top-right with margin
-	var content_size = get_combined_minimum_size()
-	size = content_size
-	position.x = viewport_size.x - size.x - MARGIN
-	position.y = MARGIN
+	return Vector2(
+		viewport_size.x - container_size.x - MARGIN,
+		MARGIN
+	)

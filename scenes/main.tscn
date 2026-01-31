@@ -249,7 +249,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.355031, 0, 3.6288733)
 [node name="TODNotification" parent="UI" instance=ExtResource("8_tod_ui")]
 layout_mode = 3
 
-[node name="RightPanelContainer" type="VBoxContainer" parent="UI"]
+[node name="RightPanelContainer" type="Control" parent="UI"]
 script = ExtResource("15_right_panel")
 
 [node name="TODClockWidget" parent="UI/RightPanelContainer" instance=ExtResource("12_clock")]

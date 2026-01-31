@@ -93,19 +93,14 @@ func _setup_viewport() -> void:
 	
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0.06, 0.06, 0.08, 1.0)  # Exact BaseWidget color, fully opaque
-	style.border_color = Color(0.25, 0.25, 0.3, 1.0)  # Exact BaseWidget border
-	# Border on all sides except bottom (tail covers it)
-	style.border_width_left = 2
-	style.border_width_right = 2
-	style.border_width_top = 2
-	style.border_width_bottom = 0
+	# No border - cleaner look
 	# Round all corners
 	style.set_corner_radius_all(_s(10))
 	# Padding on all sides (uniform like BaseWidget)
 	style.content_margin_left = _s(14)
 	style.content_margin_right = _s(14)
-	style.content_margin_top = _s(14)
-	style.content_margin_bottom = _s(18)  # Extra bottom padding for descenders (q, g, y, p, j)
+	style.content_margin_top = _s(8)
+	style.content_margin_bottom = _s(10)  # Extra bottom padding for descenders (q, g, y, p, j)
 	_panel.add_theme_stylebox_override("panel", style)
 	container.add_child(_panel)
 	
@@ -138,15 +133,16 @@ func _setup_viewport() -> void:
 	_label.custom_minimum_size = Vector2(_s(150), 0)  # Min width only, height fits content
 	_hbox.add_child(_label)
 	
-	# Create tail (triangle pointing down) - no outline, just filled
+	# Create tail (triangle pointing down) - behind panel
 	var tail = Polygon2D.new()
 	tail.color = Color(0.06, 0.06, 0.08, 1.0)  # Exact BaseWidget color
+	tail.antialiased = false  # Prevent edge artifacts
 	tail.polygon = PackedVector2Array([
-		Vector2(-_s(12), -_s(20)),  # Extend well into panel
-		Vector2(_s(12), -_s(20)),   # Extend well into panel
-		Vector2(0, _s(16))    # Point down
+		Vector2(-_s(14), -_s(8)),  # Just slightly into panel to cover gap
+		Vector2(_s(14), -_s(8)),   # Just slightly into panel to cover gap
+		Vector2(0, _s(20))    # Point down - extend past viewport to avoid edge sampling
 	])
-	tail.z_index = 1
+	tail.z_index = -1
 	container.add_child(tail)
 	
 	# Store tail ref for positioning
@@ -158,7 +154,7 @@ func _setup_sprite() -> void:
 	_sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_sprite.no_depth_test = true
 	_sprite.render_priority = 10  # Render on top of vision cone/outline
-	_sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	_sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST  # No interpolation - prevents edge artifacts
 	_sprite.pixel_size = 0.004
 	_sprite.position = Vector3(0, height_offset, 0)
 	# Make unshaded so scene lighting doesn't affect colors
@@ -268,7 +264,7 @@ func _wrap_text(text: String, max_chars: int) -> String:
 
 func _resize_to_fit() -> void:
 	var min_size = _panel.get_combined_minimum_size()
-	var tail_height = _s(20)
+	var tail_height = _s(18)  # Match actual tail extent
 	
 	# Position tail at panel bottom center
 	var tail_x = min_size.x / 2

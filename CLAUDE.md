@@ -131,3 +131,44 @@ Raccoon picks up item → Shopkeeper SEES → Suspicion=100 → CHASE → Catch/
 ```
 
 **Chase threshold:** Suspicion ≥ 70 AND Stamina > 20
+
+## UI Patterns
+
+### ScrollableWidgetContainer - Manual Layout with Scroll
+**Problem:** VBoxContainer doesn't properly size children with dynamic content (expandable panels). `get_combined_minimum_size()` doesn't update when child content changes, causing overflow/spill.
+
+**Solution:** `ScrollableWidgetContainer` base class (`ui/scrollable_widget_container.gd`):
+- Manual vertical layout using `get_combined_minimum_size()` per-frame
+- ScrollContainer wrapper with auto-scroll when content exceeds max height
+- Auto-reparents scene children to internal content container
+
+**Usage:**
+```gdscript
+class_name MyContainer
+extends ScrollableWidgetContainer
+
+func _ready() -> void:
+    alignment = Alignment.RIGHT  # LEFT, RIGHT, or CENTER
+    spacing = 10
+    super._ready()
+
+func _get_max_height() -> float:
+    return get_viewport_rect().size.y - 100  # Custom height limit
+
+func _get_anchor_position(container_size: Vector2) -> Vector2:
+    var vp = get_viewport_rect().size
+    return Vector2(vp.x - container_size.x - 20, 20)  # Top-right
+```
+
+**Why it works:** By explicitly calling `get_combined_minimum_size()` and setting `size` each frame, layout always matches actual content - unlike built-in containers that cache minimum sizes.
+
+### Sprite3D + SubViewport Edge Artifacts
+**Problem:** When rendering 2D UI to a SubViewport displayed via Sprite3D, linear texture filtering causes faint lines at transparent edges (especially visible at varying distances).
+
+**Solution:**
+```gdscript
+_sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST  # No interpolation
+```
+Also ensure content extends slightly past viewport bounds so there's no transparent edge to sample.
+
+**Why it happens:** LINEAR filtering interpolates between pixels at edges, blending with transparent pixels outside the content area. NEAREST just picks the closest pixel with no blending.
