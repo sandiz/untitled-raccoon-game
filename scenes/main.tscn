@@ -34,6 +34,8 @@ ambient_light_energy = 0.15
 tonemap_mode = 2
 fog_enabled = true
 fog_light_color = Color(0.25, 0.3, 0.4, 1)
+fog_depth_begin = 200.0
+fog_depth_end = 1000.0
 
 [sub_resource type="CameraAttributesPractical" id="CameraAttributesPractical_1"]
 
@@ -250,16 +252,26 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.355031, 0, 3.6288733)
 layout_mode = 3
 
 [node name="RightPanelContainer" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 0
 script = ExtResource("15_right_panel")
 
 [node name="TODClockWidget" parent="UI/RightPanelContainer" instance=ExtResource("12_clock")]
+layout_mode = 0
+anchors_preset = 0
 day_night_cycle_path = NodePath("../../../Environment/DayNightCycle")
 
 [node name="NPCInfoPanel" parent="UI/RightPanelContainer" instance=ExtResource("9_npc_info")]
+layout_mode = 0
+anchors_preset = 0
 
 [node name="NPCInfoPanel2" parent="UI/RightPanelContainer" instance=ExtResource("9_npc_info")]
+layout_mode = 0
+anchors_preset = 0
 
 [node name="NPCInfoPanel3" parent="UI/RightPanelContainer" instance=ExtResource("9_npc_info")]
+layout_mode = 0
+anchors_preset = 0
 
 [node name="PlayerInfoPanel" type="Control" parent="UI"]
 layout_mode = 3

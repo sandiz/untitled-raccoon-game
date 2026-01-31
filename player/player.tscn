@@ -112,7 +112,3 @@ libraries = {
 root_node = NodePath("../%CharacterMesh")
 tree_root = SubResource("AnimationNodeStateMachine_1")
 anim_player = NodePath("../AnimationPlayer")
-
-[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
-radius = 0.3
-avoidance_enabled = true
