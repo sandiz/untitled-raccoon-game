@@ -18,6 +18,8 @@
 [ext_resource type="Script" uid="uid://8dhnn72oj5ci" path="res://ui/player_info_panel.gd" id="14_player_info"]
 [ext_resource type="Script" uid="uid://1kcoc3fo0n37" path="res://ui/right_panel_container.gd" id="15_right_panel"]
 [ext_resource type="Shader" uid="uid://b20vbbsgmh3am" path="res://shaders/floor_grid.gdshader" id="16_grid_shader"]
+[ext_resource type="PackedScene" uid="uid://agnes_npc_001" path="res://npcs/agnes.tscn" id="17_agnes"]
+[ext_resource type="PackedScene" uid="uid://clyde_npc_001" path="res://npcs/clyde.tscn" id="18_clyde"]
 
 [sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_night"]
 panorama = ExtResource("1_nightsky")
@@ -245,7 +247,13 @@ target_path = NodePath("../Player")
 [node name="NPCs" type="Node3D" parent="."]
 
 [node name="Shopkeeper" parent="NPCs" instance=ExtResource("2_shopkeeper")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.005156994, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, -6)
+
+[node name="Agnes" parent="NPCs" instance=ExtResource("17_agnes")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, -6)
+
+[node name="Clyde" parent="NPCs" instance=ExtResource("18_clyde")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 10)
 
 [node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
 transform = Transform3D(0.23496953, 0, 0, 0, 0.9862821, 0, 0, 0, 0.24789615, 0, 0, 0)

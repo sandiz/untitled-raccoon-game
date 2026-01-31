@@ -3,6 +3,7 @@ extends Node
 ## Manages chat bubble visibility for UNSELECTED NPCs.
 ## Selected NPCs always show their bubbles (handled by NPCStateIndicator).
 ## This manager controls spam/cooldowns/max visible for background chatter.
+## NOTE: Selected NPC bubbles count towards the total max, reducing available slots.
 ##
 ## Uses static singleton pattern (like NPCDataStore) - not autoload.
 ## Press B to toggle debug view.
@@ -10,15 +11,17 @@ extends Node
 static var _instance: ChatBubbleManager = null
 
 # Configuration
-var max_unselected_bubbles: int = 2  # Max bubbles for unselected NPCs
+var max_total_bubbles: int = 2  # Max total bubbles (selected + unselected)
 var per_npc_cooldown: float = 8.0  # Seconds before same NPC can show again
 var min_display_time: float = 2.0  # Minimum time a bubble stays visible
 var max_distance: float = 20.0  # Don't show bubbles beyond this distance
+var startup_delay: float = 5.0  # Don't show any bubbles for first N seconds
 
 # State tracking
 var _active_bubbles: Dictionary = {}  # npc_id -> {indicator, show_time}
 var _cooldowns: Dictionary = {}  # npc_id -> cooldown_end_time
 var _queue: Array[Dictionary] = []  # [{npc_id, indicator, priority, distance}]
+var _startup_time: float = 0.0  # Time when manager started
 
 # References
 var _data_store: NPCDataStore
@@ -44,7 +47,16 @@ static func get_instance() -> ChatBubbleManager:
 	return _instance
 
 
+## Get available slots for unselected bubbles (total minus selected count)
+func _get_available_slots() -> int:
+	var selected_count = _data_store.get_selected_ids().size() if _data_store else 0
+	return max(0, max_total_bubbles - selected_count)
+
+
 func _ready() -> void:
+	# Record startup time
+	_startup_time = Time.get_ticks_msec() / 1000.0
+	
 	# Connect to data store
 	_data_store = NPCDataStore.get_instance()
 	if _data_store:
@@ -95,6 +107,11 @@ func _process(_delta: float) -> void:
 
 ## Called when any NPC's state changes
 func _on_npc_state_changed(npc_id: String, data: Dictionary) -> void:
+	# Don't show bubbles during startup delay
+	var elapsed = Time.get_ticks_msec() / 1000.0 - _startup_time
+	if elapsed < startup_delay:
+		return
+	
 	# If NPC is selected, don't manage their bubble (indicator handles it)
 	if _data_store.is_selected(npc_id):
 		return
@@ -143,8 +160,8 @@ func _request_bubble(npc_id: String, indicator: Node, priority: int, distance: f
 		_active_bubbles[npc_id].show_time = Time.get_ticks_msec() / 1000.0
 		return
 	
-	# Check if we have room
-	if _active_bubbles.size() < max_unselected_bubbles:
+	# Check if we have room (selected NPCs count towards total)
+	if _active_bubbles.size() < _get_available_slots():
 		_show_bubble(npc_id, indicator)
 	else:
 		# Try to replace lower priority bubble or queue
@@ -241,10 +258,15 @@ func _add_to_queue(npc_id: String, indicator: Node, priority: int, distance: flo
 
 ## Try to show queued bubbles
 func _try_show_queued() -> void:
+	# Don't show bubbles during startup delay
+	var elapsed = Time.get_ticks_msec() / 1000.0 - _startup_time
+	if elapsed < startup_delay:
+		return
+	
 	if _queue.is_empty():
 		return
 	
-	if _active_bubbles.size() >= max_unselected_bubbles:
+	if _active_bubbles.size() >= _get_available_slots():
 		return
 	
 	# Find first valid queued request
@@ -367,7 +389,8 @@ func _update_debug_display() -> void:
 	var current_time = Time.get_ticks_msec() / 1000.0
 	var lines: Array[String] = []
 	
-	lines.append("[B] BUBBLES %d/%d | CD %.0fs | Dist %.0fm" % [_active_bubbles.size(), max_unselected_bubbles, per_npc_cooldown, max_distance])
+	var selected_count = _data_store.get_selected_ids().size() if _data_store else 0
+	lines.append("[B] BUBBLES %d/%d (sel:%d) | CD %.0fs | Dist %.0fm" % [_active_bubbles.size(), _get_available_slots(), selected_count, per_npc_cooldown, max_distance])
 	
 	# Active bubbles (compact)
 	if not _active_bubbles.is_empty():

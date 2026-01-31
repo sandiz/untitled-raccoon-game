@@ -46,9 +46,9 @@ var _npc_data: Dictionary = {}
 # Priority tracking per NPC: {npc_id: {priority, locked_until}}
 var _npc_priority: Dictionary = {}
 
-# Selected NPCs (max 3)
+# Selected NPCs (max 1)
 var _selected_npc_ids: Array[String] = []
-const MAX_SELECTED: int = 3
+const MAX_SELECTED: int = 1
 
 # NPC node references for raycasting
 var _npc_nodes: Dictionary = {}  # npc_id -> Node3D
@@ -271,3 +271,40 @@ func get_npc_dialogue(npc_id: String) -> String:
 func get_npc_emotions(npc_id: String) -> Dictionary:
 	var data = _npc_data.get(npc_id, {})
 	return data.get("emotions", {})
+
+
+## Get all registered NPC IDs (sorted for consistent cycling)
+func get_all_npc_ids() -> Array[String]:
+	var ids: Array[String] = []
+	for id in _npc_nodes.keys():
+		ids.append(id)
+	ids.sort()
+	return ids
+
+
+## Cycle to next NPC (direction: 1 for next, -1 for previous)
+func cycle_selection(direction: int) -> void:
+	var all_ids = get_all_npc_ids()
+	if all_ids.is_empty():
+		return
+	
+	var current_index := -1
+	if _selected_npc_ids.size() > 0:
+		var current_id = _selected_npc_ids[0]
+		current_index = all_ids.find(current_id)
+	
+	# Calculate new index with wrapping
+	var new_index: int
+	if current_index < 0:
+		# Nothing selected - start at first or last depending on direction
+		new_index = 0 if direction > 0 else all_ids.size() - 1
+	else:
+		new_index = (current_index + direction) % all_ids.size()
+		if new_index < 0:
+			new_index = all_ids.size() - 1
+	
+	# Select the new NPC (this will deselect others since MAX_SELECTED is 1)
+	var new_id = all_ids[new_index]
+	_selected_npc_ids.clear()
+	_selected_npc_ids.append(new_id)
+	selection_changed.emit(_selected_npc_ids.duplicate())

@@ -1,28 +1,28 @@
-[gd_scene load_steps=10 format=3 uid="uid://dk8shopkeeper01"]
+[gd_scene load_steps=11 format=3 uid="uid://agnes_npc_001"]
 
-[ext_resource type="PackedScene" uid="uid://c2c02gg7u1txo" path="res://npcs/shopkeeper.glb" id="1_mesh"]
+[ext_resource type="PackedScene" uid="uid://wmk12duaum65" path="res://npcs/agnes.glb" id="1_mesh"]
 [ext_resource type="AnimationLibrary" uid="uid://b46m28yp3311e" path="res://player/Character_AnimationLibrary.tres" id="2_animlib"]
 [ext_resource type="Script" path="res://npcs/generic_npc.gd" id="3_script"]
 [ext_resource type="BehaviorTree" path="res://ai/trees/generic_npc_ai.tres" id="4_bt"]
 [ext_resource type="Script" path="res://scripts/ghibli_shader_applier.gd" id="6_ghibli"]
 [ext_resource type="Script" path="res://npcs/head_look_at.gd" id="7_headlook"]
 [ext_resource type="Script" path="res://npcs/perception_range.gd" id="8_perception"]
-[ext_resource type="Resource" uid="uid://personality_bernard" path="res://data/personalities/bernard.tres" id="9_personality"]
+[ext_resource type="Resource" path="res://data/personalities/agnes.tres" id="9_personality"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
-radius = 0.35
-height = 1.8
+radius = 0.4
+height = 1.7
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_1"]
 
-[node name="Shopkeeper" type="CharacterBody3D"]
+[node name="Agnes" type="CharacterBody3D"]
 script = ExtResource("3_script")
 collision_layer = 2
 collision_mask = 15
 personality = ExtResource("9_personality")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
 shape = SubResource("CapsuleShape3D_1")
 
 [node name="CharacterMesh" parent="." instance=ExtResource("1_mesh")]
@@ -56,6 +56,6 @@ skeleton_path = NodePath("../CharacterMesh/Armature/Skeleton3D")
 
 [node name="PerceptionRange" type="Node3D" parent="."]
 script = ExtResource("8_perception")
-vision_range = 10.0
-hearing_range = 10.0
+vision_range = 8.0
+hearing_range = 12.0
 show_hearing = true

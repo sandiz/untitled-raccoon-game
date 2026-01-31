@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="NPCPersonality" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://systems/npc_personality.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/portraits/clyde_portrait.png" id="2_portrait"]
+
+[resource]
+script = ExtResource("1_script")
+npc_id = "clyde"
+display_name = "Clyde"
+title = "The Security Guard"
+portrait = ExtResource("2_portrait")
+personality = "nervous"
+alertness_modifier = 1.4
+annoyance_modifier = 0.9
+exhaustion_modifier = 1.1
+suspicion_modifier = 1.3
+dialogue_idle = Array[String](["Everything seems... too quiet.", "Did I hear something? No, no, probably nothing.", "*checks flashlight nervously*"])
+dialogue_spotted = Array[String](["W-what was that?!", "I KNEW I saw something!", "Oh no oh no oh no..."])
+dialogue_suspicious = Array[String](["S-something's definitely wrong here!", "My gut's never wrong... usually.", "Stay calm, Clyde, stay calm..."])
+dialogue_chasing = Array[String](["S-STOP! Security!", "Get back here! P-please!", "This is NOT in my job description!"])
+dialogue_lost = Array[String](["Where'd they— I lost them!", "Oh man, the boss is gonna kill me...", "Come out! I-I know you're there!"])
+dialogue_caught = Array[String](["Ha! Got you! Wait, I actually got you?!", "Don't move! I mean it!", "Finally! Something went right!"])
+dialogue_gave_up = Array[String](["I can't... I can't do this...", "*hyperventilating* Need a break...", "Maybe it was just my imagination..."])
+dialogue_item_stolen = Array[String](["THEFT! We have a THEFT!", "Oh no, not on my watch!", "The merchandise!"])
+dialogue_item_recovered = Array[String](["Okay... okay, it's back. We're fine.", "Crisis averted. Phew.", "Don't scare me like that."])
+narrator_idle = Array[String](["Clyde patrols nervously, flashlight at the ready.", "His eyes dart from shadow to shadow.", "Every sound makes him jump."])
+narrator_suspicious = Array[String](["Clyde's worst fears are confirmed. Movement!", "His hand trembles on his flashlight.", "All those safety videos prepared him for this... maybe."])
+narrator_chasing = Array[String](["Clyde chases with more panic than purpose.", "His ill-fitting uniform flaps as he runs.", "Surprisingly fast when terrified!"])
+narrator_searching = Array[String](["Clyde checks every corner twice.", "His flashlight beam sweeps frantically.", "Where could they have gone?!"])
+narrator_tired = Array[String](["Clyde leans against the wall, gasping.", "His nerves are absolutely shot.", "Maybe mall security wasn't the right career..."])
+narrator_caught = Array[String](["Clyde can't believe it worked!", "He stands in shock at his own success.", "A rare moment of triumph for the anxious guard."])

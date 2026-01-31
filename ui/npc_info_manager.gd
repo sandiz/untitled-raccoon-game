@@ -40,6 +40,16 @@ func _input(event: InputEvent) -> void:
 	if not _camera:
 		return
 	
+	# Handle keyboard for NPC cycling
+	if event is InputEventKey and event.pressed and not event.echo:
+		match event.keycode:
+			KEY_BRACKETLEFT:  # [ - previous NPC
+				_data_store.cycle_selection(-1)
+				get_viewport().set_input_as_handled()
+			KEY_BRACKETRIGHT:  # ] - next NPC
+				_data_store.cycle_selection(1)
+				get_viewport().set_input_as_handled()
+	
 	# Handle mouse click for NPC selection
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:

@@ -1,0 +1,60 @@
+[remap]
+
+importer="scene"
+importer_version=1
+type="PackedScene"
+uid="uid://dq65b6m56troy"
+path="res://.godot/imported/clyde.glb-ded159456536340bc72a367fe214d960.scn"
+
+[deps]
+
+source_file="res://npcs/clyde.glb"
+dest_files=["res://.godot/imported/clyde.glb-ded159456536340bc72a367fe214d960.scn"]
+
+[params]
+
+nodes/root_type=""
+nodes/root_name="Clyde"
+nodes/root_script=null
+nodes/apply_root_scale=true
+nodes/root_scale=1.0
+nodes/import_as_skeleton_bones=false
+nodes/use_name_suffixes=true
+nodes/use_node_type_suffixes=true
+meshes/ensure_tangents=true
+meshes/generate_lods=true
+meshes/create_shadow_meshes=true
+meshes/light_baking=1
+meshes/lightmap_texel_size=0.2
+meshes/force_disable_compression=false
+skins/use_named_skins=true
+animation/import=true
+animation/fps=30
+animation/trimming=false
+animation/remove_immutable_tracks=true
+animation/import_rest_as_RESET=false
+import_script/path=""
+materials/extract=0
+materials/extract_format=0
+materials/extract_path=""
+_subresources={
+"nodes": {
+"PATH:Armature/Skeleton3D": {
+"name": "GeneralSkeleton",
+"retarget/bone_map": Resource("res://player/mixamo_bone_map.tres"),
+"unique_name_in_owner": true
+},
+"PATH:Rig/Skeleton3D": {
+"name": "GeneralSkeleton",
+"retarget/bone_map": Resource("res://player/mixamo_bone_map.tres"),
+"unique_name_in_owner": true
+},
+"PATH:Skeleton3D": {
+"name": "GeneralSkeleton",
+"retarget/bone_map": Resource("res://player/mixamo_bone_map.tres"),
+"unique_name_in_owner": true
+}
+}
+}
+gltf/naming_version=1
+gltf/embedded_image_handling=1

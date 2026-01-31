@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="NPCPersonality" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://systems/npc_personality.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/portraits/agnes_portrait.png" id="2_portrait"]
+
+[resource]
+script = ExtResource("1_script")
+npc_id = "agnes"
+display_name = "Agnes"
+title = "The Baker"
+portrait = ExtResource("2_portrait")
+personality = "cheerful"
+alertness_modifier = 0.8
+annoyance_modifier = 0.7
+exhaustion_modifier = 1.2
+suspicion_modifier = 0.9
+dialogue_idle = Array[String](["♪ La la la~ Fresh bread today!", "Oh, what a lovely morning!", "These pastries won't bake themselves, dearie!"])
+dialogue_spotted = Array[String](["Oh! Hello there, little one!", "Hmm? Was that a customer?", "Did I see something fuzzy?"])
+dialogue_suspicious = Array[String](["Now now, what's going on here?", "Something smells fishy... and it's not my fish pie!", "Wait just a moment..."])
+dialogue_chasing = Array[String](["Come back here, you little rascal!", "Oh no you don't!", "Stop right there, sweetie!"])
+dialogue_lost = Array[String](["Where did that little scamp go?", "Oh dear, oh dear...", "They're quick, I'll give them that!"])
+dialogue_caught = Array[String](["Gotcha! Now let's have a talk.", "There we are!", "No more running, little one!"])
+dialogue_gave_up = Array[String](["*huff* These old legs...", "Oh well, back to baking!", "Can't keep up like I used to..."])
+dialogue_item_stolen = Array[String](["My fresh pastries!", "Oh! That was for the display!", "Not the croissants!"])
+dialogue_item_recovered = Array[String](["Back safe and sound!", "There we go, all better.", "No harm done, dearie."])
+narrator_idle = Array[String](["Agnes hums while arranging fresh baked goods.", "The warm scent of bread fills the air around her.", "She dusts flour from her apron, content."])
+narrator_suspicious = Array[String](["Her humming stops. Something's amiss.", "Agnes peers over her spectacles with concern.", "The cheerful baker grows serious."])
+narrator_chasing = Array[String](["Agnes moves faster than you'd expect!", "Don't let her warm demeanor fool you.", "She's caught many a pastry thief in her day."])
+narrator_searching = Array[String](["Agnes looks around, puzzled.", "The little troublemaker has vanished.", "She squints, trying to spot movement."])
+narrator_tired = Array[String](["Agnes pauses to catch her breath.", "She fans herself with her apron.", "Perhaps some things aren't worth chasing."])
+narrator_caught = Array[String](["Agnes wags a flour-dusted finger.", "Caught! But her eyes remain kind.", "A stern but fair capture."])
