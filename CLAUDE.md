@@ -32,6 +32,13 @@ ui/             # info panel, speech bubble
 
 ## Critical Rules
 
+### Always Make Todo List First
+**Before starting any multi-step task, create a todo list.**
+- Use TodoWrite tool to track progress
+- Break complex tasks into smaller steps
+- Mark tasks in_progress/completed as you work
+- Helps catch mistakes early and stay organized
+
 ### Code Reuse First
 **MAXIM: Don't add new code unless you have to.**
 - Always check if exact or nearby implementation exists first

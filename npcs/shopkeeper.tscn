@@ -43,8 +43,10 @@ libraries = {
 behavior_tree = ExtResource("4_bt")
 
 [node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+radius = 0.3
 path_desired_distance = 0.5
 target_desired_distance = 0.5
+avoidance_enabled = true
 
 [node name="HeadLookAt" type="Node" parent="."]
 script = ExtResource("7_headlook")

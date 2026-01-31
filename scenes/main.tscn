@@ -1,4 +1,4 @@
-[gd_scene load_steps=47 format=3 uid="uid://bqd6y7xm7r8e2"]
+[gd_scene load_steps=49 format=3 uid="uid://bqd6y7xm7r8e2"]
 
 [ext_resource type="Texture2D" uid="uid://g1l2akl7bpva" path="res://assets/skybox/goose_sky.png" id="1_daysky"]
 [ext_resource type="Texture2D" uid="uid://bqlxhxsr63h20" path="res://assets/skybox/night_moonlit_sky.png" id="1_nightsky"]
@@ -15,6 +15,8 @@
 [ext_resource type="Script" uid="uid://br0u1dw415co" path="res://systems/game_speed_manager.gd" id="11_speed"]
 [ext_resource type="PackedScene" path="res://ui/tod_clock_widget.tscn" id="12_clock"]
 [ext_resource type="Script" uid="uid://dserlv30qf4lu" path="res://scripts/ghibli_shader_applier.gd" id="13_ghibli"]
+[ext_resource type="Script" uid="uid://8dhnn72oj5ci" path="res://ui/player_info_panel.gd" id="14_player_info"]
+[ext_resource type="Script" uid="uid://1kcoc3fo0n37" path="res://ui/right_panel_container.gd" id="15_right_panel"]
 
 [sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_night"]
 panorama = ExtResource("1_nightsky")
@@ -36,7 +38,7 @@ fog_light_color = Color(0.25, 0.3, 0.4, 1)
 [sub_resource type="CameraAttributesPractical" id="CameraAttributesPractical_1"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_1"]
-vertices = PackedVector3Array(-249.5, 0.05, -249.5, -249.5, 0.05, 249.5, 249.5, 0.05, 249.5, 249.5, 0.05, -249.5)
+vertices = PackedVector3Array(-499.5, 0.05, -499.5, -499.5, 0.05, 499.5, 499.5, 0.05, 499.5, 499.5, 0.05, -499.5)
 polygons = [PackedInt32Array(3, 2, 0), PackedInt32Array(0, 2, 1)]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
@@ -45,7 +47,7 @@ roughness = 0.95
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_1"]
 material = SubResource("StandardMaterial3D_floor")
-size = Vector2(2000, 2000)
+size = Vector2(4000, 4000)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_1"]
 size = Vector3(2000, 0.1, 2000)
@@ -247,16 +249,26 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.355031, 0, 3.6288733)
 [node name="TODNotification" parent="UI" instance=ExtResource("8_tod_ui")]
 layout_mode = 3
 
-[node name="TODClockWidget" parent="UI" instance=ExtResource("12_clock")]
-layout_mode = 3
-day_night_cycle_path = NodePath("../../Environment/DayNightCycle")
+[node name="RightPanelContainer" type="VBoxContainer" parent="UI"]
+script = ExtResource("15_right_panel")
 
-[node name="NPCInfoPanel" parent="UI" instance=ExtResource("9_npc_info")]
+[node name="TODClockWidget" parent="UI/RightPanelContainer" instance=ExtResource("12_clock")]
+day_night_cycle_path = NodePath("../../../Environment/DayNightCycle")
+
+[node name="NPCInfoPanel" parent="UI/RightPanelContainer" instance=ExtResource("9_npc_info")]
+
+[node name="NPCInfoPanel2" parent="UI/RightPanelContainer" instance=ExtResource("9_npc_info")]
+
+[node name="NPCInfoPanel3" parent="UI/RightPanelContainer" instance=ExtResource("9_npc_info")]
+
+[node name="PlayerInfoPanel" type="Control" parent="UI"]
 layout_mode = 3
+anchors_preset = 0
+script = ExtResource("14_player_info")
 
 [node name="NPCInfoManager" type="Node" parent="UI"]
 script = ExtResource("10_info_mgr")
-info_panel_path = NodePath("../NPCInfoPanel")
+info_panel_path = NodePath("../RightPanelContainer/NPCInfoPanel")
 camera_path = NodePath("../../Camera3D")
 player_path = NodePath("../../Player")
 

@@ -3,9 +3,5 @@
 [ext_resource type="Script" path="res://ui/npc_info_panel.gd" id="1_script"]
 
 [node name="NPCInfoPanel" type="Control"]
-anchors_preset = 0
-offset_left = 20.0
-offset_top = 20.0
-offset_right = 620.0
-offset_bottom = 500.0
+layout_mode = 2
 script = ExtResource("1_script")

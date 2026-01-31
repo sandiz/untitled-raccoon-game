@@ -51,7 +51,7 @@ func _toggle_expanded() -> void:
 
 
 ## Create the standard dark panel style
-func _create_panel_style(corner_radius: int = 10, padding: int = 14) -> StyleBoxFlat:
+func _create_panel_style(corner_radius: int = 10, padding: int = 10) -> StyleBoxFlat:
 	var style = StyleBoxFlat.new()
 	style.bg_color = PANEL_BG_COLOR
 	style.set_border_width_all(2)

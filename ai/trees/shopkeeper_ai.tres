@@ -2,10 +2,10 @@
 
 [ext_resource type="Script" uid="uid://d0kqh6p3jda5t" path="res://ai/tasks/chase_player.gd" id="chase"]
 [ext_resource type="Script" uid="uid://crg3p8dnv1fpg" path="res://ai/tasks/play_idle.gd" id="idle"]
+[ext_resource type="Script" uid="uid://clhfxrpw5uvn1" path="res://ai/tasks/investigate_sound.gd" id="investigate"]
 [ext_resource type="Script" uid="uid://dgfuopq42ml7a" path="res://ai/tasks/move_to_position.gd" id="move"]
 [ext_resource type="Script" uid="uid://dhgs38nfop4e0" path="res://ai/tasks/select_random_position.gd" id="select"]
 [ext_resource type="Script" uid="uid://cf2j51g1pn3jn" path="res://ai/tasks/interruptible_wait.gd" id="wait"]
-[ext_resource type="Script" path="res://ai/tasks/investigate_sound.gd" id="investigate"]
 
 [sub_resource type="BlackboardPlan" id="BlackboardPlan_1"]
 var/home_position/name = &"home_position"

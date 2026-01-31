@@ -14,6 +14,10 @@ extends Node3D
 @export var max_lines: int = 5
 @export var typewriter_speed: float = 0.03  # Seconds per character
 
+@export var min_scale: float = 0.5  # Minimum scale when zoomed way out
+@export var max_scale: float = 1.2  # Maximum scale when zoomed way in
+@export var reference_distance: float = 10.0  # Distance where scale = 1.0
+
 var _viewport: SubViewport
 var _panel: PanelContainer
 var _hbox: HBoxContainer
@@ -169,10 +173,18 @@ func _process(delta: float) -> void:
 	if _viewport and _sprite:
 		_sprite.texture = _viewport.get_texture()
 	
-	# Subtle bob animation
+	# Subtle bob animation + distance-based scaling
 	if _sprite and _sprite.visible:
 		var bob = sin(_time * bob_speed) * bob_amount
 		_sprite.position.y = height_offset + bob
+		
+		# Scale based on camera distance (prevents huge bubbles when zoomed in)
+		var camera = get_viewport().get_camera_3d()
+		if camera:
+			var distance = global_position.distance_to(camera.global_position)
+			# Scale inversely with distance, clamped
+			var scale_factor = clamp(distance / reference_distance, min_scale, max_scale)
+			_sprite.pixel_size = 0.004 * scale_factor
 
 
 func show_dialogue(text: String, _duration: float = 3.0, state: String = "idle", _priority: int = -1) -> void:
@@ -189,6 +201,10 @@ func show_dialogue(text: String, _duration: float = 3.0, state: String = "idle",
 	
 	# Status-based emoji (from shared utility)
 	_emoji_label.text = NPCUIUtils.get_status_emoji(state)
+	
+	# Status-based text color (matches info panel)
+	var text_color = NPCUIUtils.get_status_color(state)
+	_label.add_theme_color_override("font_color", text_color)
 	
 	# Strip quotes if present
 	var display_text = text.trim_prefix("\"").trim_suffix("\"")

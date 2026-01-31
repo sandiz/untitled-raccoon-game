@@ -8,7 +8,7 @@ signal item_dropped(item: Node3D)
 signal honked(position: Vector3)
 
 var _current_possessed: Node3D = null
-var _selection_ring: Node3D = null
+var _selection_ring: SelectionRing = null
 
 ## Pickup system
 var held_item: Node3D = null  # StealableItem currently held
@@ -43,13 +43,13 @@ func _ready() -> void:
 
 
 func _setup_selection_ring() -> void:
-	var ring_scene = load("res://npcs/selection_ring.gd")
-	if ring_scene:
-		_selection_ring = Node3D.new()
-		_selection_ring.set_script(ring_scene)
-		_selection_ring.ring_color = Color(1.0, 1.0, 1.0, 0.9)
-		_selection_ring.ring_size = 1.5  # Smaller for raccoon
-		add_child(_selection_ring)
+	# Use SelectionRing class directly like shopkeeper does
+	_selection_ring = SelectionRing.new()
+	add_child(_selection_ring)
+	# Configure after add_child (after _ready sets up mesh)
+	_selection_ring.set_color(Color(0.6, 0.2, 0.5, 0.85))  # Magenta/purple - complementary to green
+	# Always show ring for player avatar
+	_selection_ring.show_ring()
 
 
 func _setup_pickup_area() -> void:
@@ -86,16 +86,12 @@ func _connect_to_data_store() -> void:
 	var data_store = NPCDataStore.get_instance()
 	if data_store:
 		data_store.selection_changed.connect(_on_selection_changed)
-		# Show ring initially if no NPC selected
-		if data_store.get_selected_ids().is_empty():
-			_show_ring()
+	# Player ring is always visible - don't depend on selection
 
 
-func _on_selection_changed(selected_ids: Array) -> void:
-	if selected_ids.is_empty():
-		_show_ring()
-	else:
-		_hide_ring()
+func _on_selection_changed(_selected_ids: Array) -> void:
+	# Player ring stays visible regardless of NPC selection
+	pass
 
 
 func _show_ring() -> void:

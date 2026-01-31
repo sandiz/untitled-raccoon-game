@@ -1,11 +1,11 @@
 class_name NPCInfoPanel
 extends BaseWidget
 ## Wildlife documentary style info panel - extends BaseWidget.
-## Shows info for selected NPC or raccoon (when no NPC selected).
+## Shows info for selected NPC only (hidden when no NPC selected).
 ## Reads NPC state from NPCDataStore for sync with speech bubble.
 
 var _current_npc: Node3D = null
-var _showing_raccoon: bool = false
+
 var _tween: Tween
 var _last_state: String = ""
 var _data_store: NPCDataStore
@@ -34,13 +34,6 @@ var _suspicion_bar: ProgressBar
 var _temper_bar: ProgressBar
 
 
-# Raccoon info (hardcoded for now)
-const RACCOON_NAME: String = "Rascal"
-const RACCOON_TITLE: String = "The Sneaky Raccoon"
-const RACCOON_NARRATOR: String = "A curious trash panda surveys the scene..."
-const RACCOON_DIALOGUE: String = "*sniffs around mischievously*"
-
-
 func _ready() -> void:
 	_expand_keybind = KEY_N
 	_expanded = false  # Start collapsed
@@ -53,8 +46,7 @@ func _ready() -> void:
 	_data_store.state_changed.connect(_on_npc_state_changed)
 	_data_store.selection_changed.connect(_on_selection_changed)
 	
-	# Show raccoon info initially (no NPC selected)
-	call_deferred("_show_raccoon")
+	# Panel stays hidden until an NPC is selected
 
 
 func _input(event: InputEvent) -> void:
@@ -63,11 +55,26 @@ func _input(event: InputEvent) -> void:
 	super._input(event)
 
 
+func _process(_delta: float) -> void:
+	# Update our minimum size to match container for VBoxContainer parent
+	if _container:
+		var c_size = _container.get_combined_minimum_size()
+		if c_size != custom_minimum_size:
+			custom_minimum_size = c_size
+	
+	# Update NPC stats if visible
+	if visible and _current_npc and is_instance_valid(_current_npc):
+		_update_stats()
+
+
 func _build_ui() -> void:
-	# Main container
+	# Don't expand vertically in VBoxContainer
+	size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	
+	# Container
 	_container = PanelContainer.new()
-	_container.custom_minimum_size = Vector2(_s(300), 0)
-	_container.add_theme_stylebox_override("panel", _create_panel_style(10, 16))
+	_container.custom_minimum_size.x = _s(340)
+	_container.add_theme_stylebox_override("panel", _create_panel_style())
 	add_child(_container)
 	
 	var main_vbox = VBoxContainer.new()
@@ -230,11 +237,6 @@ func _create_stat_bar(emoji: String, label_text: String, color: Color) -> Progre
 	return bar
 
 
-func _process(_delta: float) -> void:
-	if visible and _current_npc and is_instance_valid(_current_npc):
-		_update_stats()
-
-
 func _on_npc_state_changed(npc_id: String, data: Dictionary) -> void:
 	# Update if this is the currently displayed NPC
 	if _current_npc and _current_npc.get("npc_id") == npc_id:
@@ -249,10 +251,9 @@ func _on_npc_state_changed(npc_id: String, data: Dictionary) -> void:
 
 
 func show_npc(npc: Node3D) -> void:
-	if _current_npc == npc and visible and not _showing_raccoon:
+	if _current_npc == npc and visible:
 		return
 	
-	_showing_raccoon = false
 	_current_npc = npc
 	_last_state = ""
 	
@@ -300,72 +301,41 @@ func show_npc(npc: Node3D) -> void:
 		_tween.kill()
 	_tween = create_tween()
 	_tween.set_ease(Tween.EASE_OUT)
-	_tween.set_trans(Tween.TRANS_QUAD)
+	_tween.set_trans(Tween.TRANS_BACK)
+	# Slide in from right + fade in
+	_container.position.x = 50
+	_tween.set_parallel(true)
+	_tween.tween_property(_container, "position:x", 0.0, 0.3)
 	_tween.tween_property(self, "modulate:a", 1.0, 0.2)
 
 
 func hide_panel() -> void:
 	_current_npc = null
-	_showing_raccoon = false
 	
 	if _tween:
 		_tween.kill()
 	_tween = create_tween()
 	_tween.set_ease(Tween.EASE_IN)
 	_tween.set_trans(Tween.TRANS_QUAD)
+	# Slide out to right + fade out
+	_tween.set_parallel(true)
+	_tween.tween_property(_container, "position:x", 50.0, 0.2)
 	_tween.tween_property(self, "modulate:a", 0.0, 0.15)
-	_tween.tween_callback(func(): visible = false)
+	_tween.chain().tween_callback(func(): 
+		visible = false
+		_container.position.x = 0  # Reset for next show
+	)
 
 
 func _on_selection_changed(selected_ids: Array) -> void:
 	if selected_ids.is_empty():
-		# No NPC selected - show raccoon info
-		_show_raccoon()
+		# No NPC selected - hide panel
+		hide_panel()
 	else:
 		# NPC selected - show that NPC's info
 		var npc_node = _data_store.get_npc_node(selected_ids[0])
 		if npc_node:
 			show_npc(npc_node)
-
-
-func _show_raccoon() -> void:
-	_showing_raccoon = true
-	_current_npc = null
-	_last_state = ""
-	
-	# Update display for raccoon
-	_name_label.text = RACCOON_NAME
-	_title_label.text = RACCOON_TITLE
-	_portrait_container.visible = false  # No portrait for raccoon (yet)
-	
-	# State - raccoon is always "exploring"
-	_state_label.text = "🦝 Exploring"
-	_state_label.add_theme_color_override("font_color", Color(0.4, 0.8, 0.4))
-	
-	# Narrator and dialogue
-	_narrator_full_text = RACCOON_NARRATOR
-	if _narrator_tween:
-		_narrator_tween.kill()
-	_narrator_label.text = ""
-	_narrator_tween = create_tween()
-	for i in range(RACCOON_NARRATOR.length()):
-		_narrator_tween.tween_callback(_add_narrator_char.bind(i))
-		_narrator_tween.tween_interval(TYPEWRITER_SPEED)
-	
-	_show_dialogue_text(RACCOON_DIALOGUE)
-	
-	# Hide stat bars for raccoon (or show different ones later)
-	if _stats_box:
-		_stats_box.visible = false
-	
-	# Show the panel
-	visible = true
-	if _tween:
-		_tween.kill()
-	_tween = create_tween()
-	_tween.set_ease(Tween.EASE_OUT)
-	_tween.set_trans(Tween.TRANS_QUAD)
-	_tween.tween_property(self, "modulate:a", 1.0, 0.2)
 
 
 func _update_narrator_text(personality, state: String) -> void:
@@ -457,7 +427,16 @@ func _update_stats() -> void:
 	if not emo:
 		return
 	
-	# Update 3-meter bars (values are 0-100, bars expect 0-1)
-	_stamina_bar.value = emo.stamina / 100.0
-	_suspicion_bar.value = emo.suspicion / 100.0
-	_temper_bar.value = emo.temper / 100.0
+	# Smoothly interpolate progress bars
+	var delta = get_process_delta_time()
+	var target_stamina = emo.stamina / 100.0
+	var target_suspicion = emo.suspicion / 100.0
+	var target_temper = emo.temper / 100.0
+	
+	# Faster lerp for decrease, normal for increase
+	var up_speed = 10.0 * delta
+	var down_speed = 15.0 * delta
+	
+	_stamina_bar.value = lerpf(_stamina_bar.value, target_stamina, down_speed if target_stamina < _stamina_bar.value else up_speed)
+	_suspicion_bar.value = lerpf(_suspicion_bar.value, target_suspicion, down_speed if target_suspicion < _suspicion_bar.value else up_speed)
+	_temper_bar.value = lerpf(_temper_bar.value, target_temper, down_speed if target_temper < _temper_bar.value else up_speed)

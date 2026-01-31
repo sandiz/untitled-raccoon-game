@@ -79,9 +79,10 @@ toggle_debug={
 [moonlake]
 
 general/project_id="2e0c8ecb-c65a-4392-af3c-92f8d91b2db4"
-ui/simplified_ui=true
 agent_behavior/escape_key_stops_agent=true
 general/project_type="3d"
+ui/chat_input_height=352.0
+ui/simplified_ui=true
 
 [navigation]
 
@@ -89,6 +90,8 @@ general/project_type="3d"
 
 [rendering]
 
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
 anti_aliasing/quality/use_debanding=true
 3d/debug_navigation_geometry_face_disabled=true
 3d/debug_navigation_geometry_edge_disabled=true

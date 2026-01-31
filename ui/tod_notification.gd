@@ -23,7 +23,6 @@ var _queue: Array[Dictionary] = []
 var _is_showing: bool = false
 var _load_happened: bool = false  # Skip startup TOD if save was loaded
 var _suppress_external_tod: bool = true  # Start suppressed, enable after startup/load
-var _clock_widget: Control = null  # Reference to clock widget for positioning
 
 # Preset notification types
 const PRESETS := {
@@ -59,7 +58,6 @@ func _ready() -> void:
 	# Connect to systems
 	call_deferred("_connect_systems")
 	call_deferred("_show_startup_tod")
-	call_deferred("_find_clock_widget")
 
 
 ## Scale value by editor scale
@@ -75,15 +73,17 @@ func _get_editor_scale() -> float:
 
 
 func _build_ui() -> void:
-	# Panel container with dark style - top-right, below clock widget
+	# Panel container with dark style - center top
 	_panel = PanelContainer.new()
 	_panel.add_theme_stylebox_override("panel", _create_panel_style())
-	_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	_panel.grow_vertical = Control.GROW_DIRECTION_END
-	_panel.position.x = -_s(10)  # Right margin (matches clock widget)
-	_panel.position.y = _s(70)   # Default position, updated dynamically
-	add_child(_panel)
+	
+	# Center horizontally at top using CenterContainer approach
+	var center = CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	center.offset_top = 0
+	center.offset_bottom = 50
+	add_child(center)
+	center.add_child(_panel)
 	
 	# Content row
 	var hbox = HBoxContainer.new()
@@ -147,52 +147,6 @@ func _show_startup_tod() -> void:
 			_show(data.get("text", period), data["icon"], data["color"], data.get("duration", 3.0))
 	
 	_suppress_external_tod = false  # Allow normal TOD notifications now
-
-
-func _find_clock_widget() -> void:
-	# Find TODClockWidget sibling by looking for BaseWidget with _container
-	var parent = get_parent()
-	if parent:
-		for child in parent.get_children():
-			if child != self and child is BaseWidget:
-				_clock_widget = child
-				return
-		# Fallback: find by name pattern
-		for child in parent.get_children():
-			if child != self and (child.name.contains("Clock") or child.name.contains("TOD")):
-				_clock_widget = child
-				return
-
-
-func _process(_delta: float) -> void:
-	_update_position_below_clock()
-
-
-func _update_position_below_clock() -> void:
-	if not _panel:
-		return
-	
-	# Find clock widget if not cached
-	if not _clock_widget or not is_instance_valid(_clock_widget):
-		_find_clock_widget()
-	
-	# Position below clock widget's actual visible container
-	if _clock_widget and is_instance_valid(_clock_widget):
-		# Get the _container from the BaseWidget (the actual visible panel)
-		var container: Control = _clock_widget.get("_container") as Control
-		if container:
-			# Use global rect to get actual screen position regardless of anchors
-			var clock_rect = container.get_global_rect()
-			# Our panel is also anchored top-right, so position.y is offset from anchor
-			# Clock rect bottom is in global coords, convert to our local offset
-			_panel.position.y = clock_rect.end.y + _s(10) - global_position.y
-		else:
-			# Fallback: use widget size directly
-			var clock_bottom = _clock_widget.size.y
-			_panel.position.y = clock_bottom + _s(10)
-	else:
-		# Fallback position
-		_panel.position.y = _s(70)
 
 
 func _on_save_completed(_slot: String) -> void:
@@ -274,8 +228,8 @@ func _display(notif: Dictionary) -> void:
 	var duration: float = notif.get("duration", 2.0)
 	
 	# Animate - drop from above (relative to resting position)
-	var resting_y = _s(70)  # Below clock widget with space
-	_panel.position.y = _s(20)  # Start near clock level
+	var resting_y = _s(20)  # Resting position
+	_panel.position.y = _s(20)  # Start near top
 	_tween = create_tween()
 	_tween.set_ease(Tween.EASE_OUT)
 	_tween.set_trans(Tween.TRANS_BACK)

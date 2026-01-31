@@ -34,6 +34,19 @@ func _ready() -> void:
 	_expand_keybind = KEY_V
 	super._ready()
 	call_deferred("_connect_day_night")
+	call_deferred("_slide_in")
+
+
+func _slide_in() -> void:
+	# Slide in from right on startup
+	modulate.a = 0.0
+	_container.position.x = 50
+	var tween = create_tween()
+	tween.set_ease(Tween.EASE_OUT)
+	tween.set_trans(Tween.TRANS_BACK)
+	tween.set_parallel(true)
+	tween.tween_property(_container, "position:x", 0.0, 0.3)
+	tween.tween_property(self, "modulate:a", 1.0, 0.2)
 
 
 
@@ -67,15 +80,16 @@ func _find_day_night_recursive(node: Node) -> DayNightCycle:
 
 
 func _build_ui() -> void:
-	# Sleek single-row container - positioned at right, grows left
+	# Container - sized to content
 	_container = PanelContainer.new()
-	_container.size_flags_horizontal = Control.SIZE_SHRINK_END  # Align to right
-	_container.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_container.grow_horizontal = Control.GROW_DIRECTION_BEGIN  # Grow left
 	var style = _create_panel_style(6, 6)
-	style.content_margin_left = _s(10)  # Extra left padding
+	style.content_margin_left = _s(10)
+	style.content_margin_right = _s(16)
 	_container.add_theme_stylebox_override("panel", style)
 	add_child(_container)
+	
+	# Right-align within parent VBoxContainer
+	size_flags_horizontal = Control.SIZE_SHRINK_END
 	
 	# Main VBox for collapsed + expanded
 	var main_vbox = VBoxContainer.new()
@@ -95,9 +109,14 @@ func _build_ui() -> void:
 	_time_label = _create_label("8:00 AM", 16)
 	_row.add_child(_time_label)
 	
-	# Expand button (smaller)
+	# Spacer to push expand button to right
+	var spacer = Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_row.add_child(spacer)
+	
+	# Expand button (smaller) - fixed on right
 	var expand_btn = _create_expand_button()
-	expand_btn.custom_minimum_size = Vector2(_s(20), _s(20))
+	expand_btn.custom_minimum_size = Vector2(_s(28), _s(20))
 	_row.add_child(expand_btn)
 	
 	# === 24h PROGRESS BAR (clickable) ===
@@ -152,6 +171,14 @@ func _build_ui() -> void:
 	var speed_down = _create_button("-", _on_speed_down, 10)
 	speed_down.custom_minimum_size = Vector2(_s(18), _s(20))
 	_expanded_box.add_child(speed_down)
+
+
+func _process(_delta: float) -> void:
+	# Update our minimum size to match container for VBoxContainer parent
+	if _container:
+		var c_size = _container.get_combined_minimum_size()
+		if c_size != custom_minimum_size:
+			custom_minimum_size = c_size
 
 
 
