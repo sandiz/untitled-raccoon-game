@@ -6,6 +6,8 @@ static func get_status_emoji(state: String) -> String:
 	match state:
 		"idle", "calm", "returning":
 			return "😌"  # Relaxed/content
+		"exploring":
+			return "🦝"  # Raccoon exploring
 		"alert":
 			return "👀"  # Alert/watching
 		"suspicious", "investigating":
@@ -27,6 +29,8 @@ static func get_status_color(state: String) -> Color:
 	match state:
 		"idle", "calm", "returning":
 			return Color(0.3, 0.7, 0.3)  # Green
+		"exploring":
+			return Color(0.4, 0.8, 0.9)  # Cyan/teal
 		"alert":
 			return Color(0.9, 0.7, 0.0)  # Yellow
 		"suspicious", "investigating", "searching":

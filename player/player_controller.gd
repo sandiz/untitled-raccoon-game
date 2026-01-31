@@ -6,6 +6,7 @@ signal released_npc(npc: Node3D)
 signal item_picked_up(item: Node3D)
 signal item_dropped(item: Node3D)
 signal honked(position: Vector3)
+signal state_changed(state: String)
 
 var _current_possessed: Node3D = null
 var _selection_ring: SelectionRing = null
@@ -308,6 +309,7 @@ func _handle_nav_movement(delta: float) -> void:
 		# Hide indicator when raccoon arrives
 		if _click_indicator:
 			_click_indicator.hide_indicator()
+		state_changed.emit("idle")
 		return
 	
 	var next_pos = _nav_agent.get_next_path_position()
@@ -374,6 +376,7 @@ func _handle_click_to_move(screen_pos: Vector2) -> void:
 	# Set navigation target
 	_nav_agent.target_position = target_pos
 	_is_moving = true
+	state_changed.emit("exploring")
 	
 	# Show animated indicator at target
 	if _click_indicator and _click_indicator.is_inside_tree():

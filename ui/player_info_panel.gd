@@ -18,7 +18,7 @@ var _name_label: Label
 var _title_label: Label
 var _state_label: Label
 var _fps_label: Label
-var _current_state: String = "exploring"
+var _current_state: String = "idle"
 
 
 func _ready() -> void:
@@ -26,10 +26,23 @@ func _ready() -> void:
 	# Show immediately
 	visible = true
 	modulate.a = 1.0
+	
+	# Connect to player state changes
+	call_deferred("_connect_to_player")
 
 
 func _process(_delta: float) -> void:
 	_update_fps()
+
+
+func _connect_to_player() -> void:
+	var player = get_tree().get_first_node_in_group("player")
+	if player and player.has_signal("state_changed"):
+		player.state_changed.connect(_on_player_state_changed)
+
+
+func _on_player_state_changed(state: String) -> void:
+	set_state(state)
 
 
 func _update_fps() -> void:
@@ -66,8 +79,10 @@ func _build_ui() -> void:
 	_fps_label = Label.new()
 	_fps_label.text = "60 FPS"
 	_fps_label.position.x = _s(8)  # Left padding to align with panel content
-	_fps_label.add_theme_font_size_override("font_size", _s(12))
+	_fps_label.add_theme_font_size_override("font_size", _s(14))
 	_fps_label.add_theme_color_override("font_color", Color(0.3, 0.9, 0.3))
+	_fps_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	_fps_label.add_theme_constant_override("outline_size", _s(2))
 	var font = load("res://assets/fonts/JetBrainsMono.ttf")
 	if font:
 		_fps_label.add_theme_font_override("font", font)
@@ -126,8 +141,8 @@ func _build_ui() -> void:
 	header_vbox.add_child(_title_label)
 	
 	# State row (emoji + state text together like NPC panel)
-	_state_label = _create_label("🦝 Exploring", 14)
-	_state_label.add_theme_color_override("font_color", Color(0.4, 0.8, 0.4))
+	_state_label = _create_label("😌 Idle", 14)
+	_state_label.add_theme_color_override("font_color", Color(0.3, 0.7, 0.3))
 	_state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	header_vbox.add_child(_state_label)
 

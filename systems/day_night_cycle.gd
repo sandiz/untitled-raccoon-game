@@ -279,10 +279,23 @@ func _update_shader_brightness(brightness_value: float) -> void:
 	if not _materials_cached:
 		_cache_shader_materials()
 	
+	# Calculate day_factor for grid shader (1.0 = day, 0.0 = night)
+	# Morning/Afternoon = 1.0, Evening = 0.5, Night = 0.0
+	var day_factor := 1.0
+	match _current_period:
+		TimePeriod.MORNING, TimePeriod.AFTERNOON:
+			day_factor = 1.0
+		TimePeriod.EVENING:
+			day_factor = 0.5
+		TimePeriod.NIGHT:
+			day_factor = 0.0
+	
 	# Update all cached materials
 	for mat in _cached_materials:
 		if is_instance_valid(mat):
 			mat.set_shader_parameter("brightness", brightness_value)
+			# Also update day_factor for grid shader (ignored if shader doesn't have it)
+			mat.set_shader_parameter("day_factor", day_factor)
 
 
 func _cache_shader_materials() -> void:

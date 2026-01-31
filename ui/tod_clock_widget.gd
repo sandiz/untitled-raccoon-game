@@ -195,9 +195,13 @@ func _on_pause_pressed() -> void:
 		if _day_night.is_paused():
 			_day_night.resume()
 			_pause_btn.text = "⏸"
+			# Restore game speed
+			Engine.time_scale = SPEED_VALUES[_speed_index]
 		else:
 			_day_night.pause()
 			_pause_btn.text = "▶"
+			# Pause the entire game
+			Engine.time_scale = 0.0
 
 
 func _on_speed_up() -> void:

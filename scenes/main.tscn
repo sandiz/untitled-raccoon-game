@@ -1,4 +1,4 @@
-[gd_scene load_steps=49 format=3 uid="uid://bqd6y7xm7r8e2"]
+[gd_scene load_steps=52 format=3 uid="uid://bqd6y7xm7r8e2"]
 
 [ext_resource type="Texture2D" uid="uid://g1l2akl7bpva" path="res://assets/skybox/goose_sky.png" id="1_daysky"]
 [ext_resource type="Texture2D" uid="uid://bqlxhxsr63h20" path="res://assets/skybox/night_moonlit_sky.png" id="1_nightsky"]
@@ -17,6 +17,7 @@
 [ext_resource type="Script" uid="uid://dserlv30qf4lu" path="res://scripts/ghibli_shader_applier.gd" id="13_ghibli"]
 [ext_resource type="Script" uid="uid://8dhnn72oj5ci" path="res://ui/player_info_panel.gd" id="14_player_info"]
 [ext_resource type="Script" uid="uid://1kcoc3fo0n37" path="res://ui/right_panel_container.gd" id="15_right_panel"]
+[ext_resource type="Shader" uid="uid://b20vbbsgmh3am" path="res://shaders/floor_grid.gdshader" id="16_grid_shader"]
 
 [sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_night"]
 panorama = ExtResource("1_nightsky")
@@ -50,6 +51,24 @@ roughness = 0.95
 [sub_resource type="PlaneMesh" id="PlaneMesh_1"]
 material = SubResource("StandardMaterial3D_floor")
 size = Vector2(4000, 4000)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_grid"]
+render_priority = 1
+shader = ExtResource("16_grid_shader")
+shader_parameter/grid_size = 1.0
+shader_parameter/line_thickness = 0.02
+shader_parameter/line_softness = 0.015
+shader_parameter/line_color = Color(1, 1, 1, 0.20)
+shader_parameter/fade_start = 15.0
+shader_parameter/fade_end = 40.0
+shader_parameter/fade_start_day = 25.0
+shader_parameter/fade_end_day = 80.0
+shader_parameter/day_factor = 1.0
+shader_parameter/night_brightness_boost = 1.5
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_grid"]
+material = SubResource("ShaderMaterial_grid")
+size = Vector2(200, 200)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_1"]
 size = Vector3(2000, 0.1, 2000)
@@ -238,6 +257,11 @@ navigation_mesh = SubResource("NavigationMesh_1")
 cast_shadow = 0
 mesh = SubResource("PlaneMesh_1")
 
+[node name="GridOverlay" type="MeshInstance3D" parent="NavigationRegion3D/Floor"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
+cast_shadow = 0
+mesh = SubResource("PlaneMesh_grid")
+
 [node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Floor"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0)
 visible = false
@@ -245,7 +269,6 @@ shape = SubResource("BoxShape3D_1")
 
 [node name="Player" parent="." instance=ExtResource("5_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.355031, 0, 3.6288733)
-model_rotation_offset = 0.3
 
 [node name="UI" type="CanvasLayer" parent="."]
 
