@@ -1,24 +1,45 @@
 class_name ClickIndicator
 extends Node3D
 ## Cute animated click-to-move indicator
-## Shows a shrinking ring with fade-out effect when player clicks to move
+## Shows a ring on ground with bouncing arrow pointing down
 
 const RING_SEGMENTS := 32
-const RING_INNER_RADIUS := 0.3
-const RING_OUTER_RADIUS := 0.4
+const RING_INNER_RADIUS := 0.4  # Match visual size of raccoon's selection ring
+const RING_OUTER_RADIUS := 0.48
 
 ## Animation settings
-@export var duration := 0.8  # How long the animation lasts
-@export var start_scale := 1.5  # Initial scale
-@export var end_scale := 0.3  # Final scale (shrinks down)
+@export var duration := 0.4  # Fade out duration
+
+## Arrow bounce settings
+@export var arrow_bounce_height := 0.5
+@export var arrow_bounce_speed := 4.0
+@export var arrow_base_height := 1.0
 
 var _mesh_instance: MeshInstance3D
 var _material: StandardMaterial3D
+var _arrow: Node3D
+var _arrow_material: StandardMaterial3D
 var _tween: Tween
+var _time := 0.0
 
 
 func _ready() -> void:
 	_create_ring_mesh()
+	_create_arrow()
+
+
+func _process(delta: float) -> void:
+	if not visible:
+		return
+	
+	# Bounce the arrow
+	_time += delta
+	if _arrow:
+		var bounce := sin(_time * arrow_bounce_speed) * arrow_bounce_height
+		_arrow.position.y = arrow_base_height + bounce
+		# Debug every 60 frames
+		if Engine.get_process_frames() % 60 == 0:
+			print("[ClickIndicator] _time=", snapped(_time, 0.01), " bounce=", snapped(bounce, 0.01), " arrow.y=", snapped(_arrow.position.y, 0.01))
 
 
 func _create_ring_mesh() -> void:
@@ -33,17 +54,15 @@ func _create_ring_mesh() -> void:
 	_material = StandardMaterial3D.new()
 	_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_material.cull_mode = BaseMaterial3D.CULL_DISABLED  # Visible from both sides
-	_material.albedo_color = Color(1.0, 0.85, 0.5, 0.9)  # Warm golden yellow
+	_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_material.albedo_color = Color(1.0, 1.0, 1.0, 0.9)  # White - visible in all lighting
 	_material.vertex_color_use_as_albedo = true
 	_mesh_instance.material_override = _material
 	
-	# Build the ring geometry
 	_build_ring(mesh)
 	
-	# Position flat on ground, slightly above to avoid z-fighting
 	_mesh_instance.position.y = 0.02
-	_mesh_instance.rotation_degrees.x = -90  # Flat on XZ plane
+	_mesh_instance.rotation_degrees.x = -90
 	
 	add_child(_mesh_instance)
 	visible = false
@@ -53,57 +72,101 @@ func _build_ring(mesh: ImmediateMesh) -> void:
 	mesh.clear_surfaces()
 	mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLE_STRIP)
 	
-	# Create ring with gradient alpha (brighter at outer edge)
 	for i in range(RING_SEGMENTS + 1):
 		var angle := float(i) / RING_SEGMENTS * TAU
 		var cos_a := cos(angle)
 		var sin_a := sin(angle)
 		
-		# Outer vertex (brighter)
-		var outer_color := Color(1.0, 0.9, 0.55, 0.95)
+		var outer_color := Color(1.0, 1.0, 1.0, 0.9)
 		mesh.surface_set_color(outer_color)
 		mesh.surface_add_vertex(Vector3(cos_a * RING_OUTER_RADIUS, sin_a * RING_OUTER_RADIUS, 0))
 		
-		# Inner vertex (more transparent for soft edge)
-		var inner_color := Color(1.0, 0.75, 0.3, 0.4)
+		var inner_color := Color(1.0, 1.0, 1.0, 0.3)
 		mesh.surface_set_color(inner_color)
 		mesh.surface_add_vertex(Vector3(cos_a * RING_INNER_RADIUS, sin_a * RING_INNER_RADIUS, 0))
 	
 	mesh.surface_end()
 
 
-## Show the indicator at the given world position with animation
+func _create_arrow() -> void:
+	_arrow = Node3D.new()
+	_arrow.name = "Arrow"
+	
+	# Arrow material - same golden color
+	_arrow_material = StandardMaterial3D.new()
+	_arrow_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_arrow_material.albedo_color = Color(1.0, 1.0, 1.0, 1.0)  # White
+	
+	# Arrow head (cone pointing down)
+	var head := MeshInstance3D.new()
+	var cone := CylinderMesh.new()
+	cone.top_radius = 0.0
+	cone.bottom_radius = 0.2
+	cone.height = 0.4
+	cone.radial_segments = 8
+	head.mesh = cone
+	head.material_override = _arrow_material
+	head.rotation_degrees.x = 180  # Point downward
+	head.position.y = -0.2
+	_arrow.add_child(head)
+	
+	# Arrow shaft (thin cylinder)
+	var shaft := MeshInstance3D.new()
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = 0.06
+	cyl.bottom_radius = 0.06
+	cyl.height = 0.35
+	cyl.radial_segments = 6
+	shaft.mesh = cyl
+	shaft.material_override = _arrow_material
+	shaft.position.y = 0.17
+	_arrow.add_child(shaft)
+	
+	_arrow.position.y = arrow_base_height
+	add_child(_arrow)
+
+
 func show_at(pos: Vector3) -> void:
-	# Kill any existing animation
 	if _tween and _tween.is_valid():
 		_tween.kill()
 	
-	# Position at click location
 	global_position = pos
+	# Don't reset _time - preserve bounce phase across clicks
 	
-	# Reset state
+	# Immediately update arrow position to current bounce phase
+	if _arrow:
+		var bounce := sin(_time * arrow_bounce_speed) * arrow_bounce_height
+		_arrow.position.y = arrow_base_height + bounce
+		print("[ClickIndicator] show_at: _time=", snapped(_time, 0.01), " immediate bounce=", snapped(bounce, 0.01))
+	
 	visible = true
-	scale = Vector3.ONE * start_scale
-	_material.albedo_color.a = 1.0
+	scale = Vector3.ONE
 	
-	# Create shrink + fade animation
+	# Start transparent
+	_material.albedo_color.a = 0.0
+	_arrow_material.albedo_color.a = 0.0
+	
+	# Fade in animation
 	_tween = create_tween()
 	_tween.set_parallel(true)
 	_tween.set_ease(Tween.EASE_OUT)
 	_tween.set_trans(Tween.TRANS_QUAD)
 	
-	# Shrink down
-	_tween.tween_property(self, "scale", Vector3.ONE * end_scale, duration)
-	
-	# Fade out (slightly delayed start for better feel)
-	_tween.tween_property(_material, "albedo_color:a", 0.0, duration * 0.7).set_delay(duration * 0.3)
-	
-	# Hide when done
-	_tween.chain().tween_callback(func(): visible = false)
+	_tween.tween_property(_material, "albedo_color:a", 0.9, duration)
+	_tween.tween_property(_arrow_material, "albedo_color:a", 1.0, duration)
 
 
-## Immediately hide the indicator
 func hide_indicator() -> void:
 	if _tween and _tween.is_valid():
 		_tween.kill()
-	visible = false
+	
+	# Fade out animation
+	_tween = create_tween()
+	_tween.set_parallel(true)
+	_tween.set_ease(Tween.EASE_IN)
+	_tween.set_trans(Tween.TRANS_QUAD)
+	
+	_tween.tween_property(_material, "albedo_color:a", 0.0, duration)
+	_tween.tween_property(_arrow_material, "albedo_color:a", 0.0, duration)
+	
+	_tween.chain().tween_callback(func(): visible = false)

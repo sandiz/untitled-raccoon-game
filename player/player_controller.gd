@@ -29,6 +29,7 @@ var _nav_agent: NavigationAgent3D = null
 var _click_indicator: ClickIndicator = null
 var _is_moving: bool = false
 @export var move_speed: float = 4.0
+@export var model_rotation_offset: float = 0.3  # Compensate for baked model rotation (~17 degrees)
 
 ## Debug item for testing theft detection
 var _debug_item: Node3D = null
@@ -279,7 +280,7 @@ func _handle_debug_movement(delta: float) -> void:
 		velocity.z = input_dir.z * debug_speed
 		
 		# Face movement direction
-		var target_angle = atan2(input_dir.x, input_dir.z)
+		var target_angle = atan2(-input_dir.x, -input_dir.z) + model_rotation_offset
 		rotation.y = lerp_angle(rotation.y, target_angle, 0.15)
 	else:
 		velocity.x = 0
@@ -304,7 +305,9 @@ func _handle_nav_movement(delta: float) -> void:
 		_is_moving = false
 		velocity.x = 0
 		velocity.z = 0
-		# Indicator auto-hides after its animation completes
+		# Hide indicator when raccoon arrives
+		if _click_indicator:
+			_click_indicator.hide_indicator()
 		return
 	
 	var next_pos = _nav_agent.get_next_path_position()
@@ -316,7 +319,7 @@ func _handle_nav_movement(delta: float) -> void:
 	
 	# Face movement direction
 	if direction.length() > 0.01:
-		var target_angle = atan2(direction.x, direction.z)
+		var target_angle = atan2(-direction.x, -direction.z) + model_rotation_offset
 		rotation.y = lerp_angle(rotation.y, target_angle, 0.15)
 	
 	# Gravity
