@@ -79,8 +79,8 @@ roughness = 0.7
 
 [sub_resource type="SphereMesh" id="mesh_apple"]
 material = SubResource("mat_apple")
-radius = 0.12
-height = 0.24
+radius = 0.35
+height = 0.7
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_0ld40"]
 
@@ -95,7 +95,7 @@ shader_parameter/shadow_strength = 0.25
 shader_parameter/shadow_threshold = 0.4
 
 [sub_resource type="SphereShape3D" id="shape_apple"]
-radius = 0.12
+radius = 0.35
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_yc10j"]
 
@@ -128,9 +128,9 @@ roughness = 0.3
 
 [sub_resource type="CylinderMesh" id="mesh_bottle"]
 material = SubResource("mat_bottle")
-top_radius = 0.06
-bottom_radius = 0.08
-height = 0.3
+top_radius = 0.18
+bottom_radius = 0.24
+height = 0.9
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_og1vs"]
 
@@ -145,8 +145,8 @@ shader_parameter/shadow_strength = 0.25
 shader_parameter/shadow_threshold = 0.4
 
 [sub_resource type="CylinderShape3D" id="shape_bottle"]
-height = 0.3
-radius = 0.08
+height = 0.9
+radius = 0.24
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_vxglm"]
 
@@ -166,7 +166,7 @@ roughness = 0.9
 
 [sub_resource type="BoxMesh" id="mesh_box"]
 material = SubResource("mat_box")
-size = Vector3(0.25, 0.25, 0.25)
+size = Vector3(0.75, 0.75, 0.75)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_yq6so"]
 
@@ -181,7 +181,7 @@ shader_parameter/shadow_strength = 0.25
 shader_parameter/shadow_threshold = 0.4
 
 [sub_resource type="BoxShape3D" id="shape_box"]
-size = Vector3(0.25, 0.25, 0.25)
+size = Vector3(0.75, 0.75, 0.75)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_tel4y"]
 
@@ -252,6 +252,8 @@ transform = Transform3D(0.23496953, 0, 0, 0, 0.9862821, 0, 0, 0, 0.24789615, 0, 
 navigation_mesh = SubResource("NavigationMesh_1")
 
 [node name="Floor" type="StaticBody3D" parent="NavigationRegion3D"]
+collision_layer = 1
+collision_mask = 12
 
 [node name="FloorMesh" type="MeshInstance3D" parent="NavigationRegion3D/Floor"]
 cast_shadow = 0
@@ -289,14 +291,6 @@ day_night_cycle_path = NodePath("../../../Environment/DayNightCycle")
 layout_mode = 0
 anchors_preset = 0
 
-[node name="NPCInfoPanel2" parent="UI/RightPanelContainer" instance=ExtResource("9_npc_info")]
-layout_mode = 0
-anchors_preset = 0
-
-[node name="NPCInfoPanel3" parent="UI/RightPanelContainer" instance=ExtResource("9_npc_info")]
-layout_mode = 0
-anchors_preset = 0
-
 [node name="PlayerInfoPanel" type="Control" parent="UI"]
 layout_mode = 3
 anchors_preset = 0
@@ -311,8 +305,9 @@ player_path = NodePath("../../Player")
 [node name="Items" type="Node3D" parent="."]
 
 [node name="Apple1" type="RigidBody3D" parent="Items"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.12, 2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.35, 2)
 collision_layer = 8
+collision_mask = 15
 mass = 0.3
 script = ExtResource("6_shop_item")
 item_name = "Red Apple"
@@ -324,9 +319,13 @@ surface_material_override/0 = SubResource("ShaderMaterial_gqmmt")
 [node name="Collision" type="CollisionShape3D" parent="Items/Apple1"]
 shape = SubResource("shape_apple")
 
+[node name="NavObstacle" type="NavigationObstacle3D" parent="Items/Apple1"]
+radius = 0.5
+
 [node name="Apple2" type="RigidBody3D" parent="Items"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.7, 0.12, 2.1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.7, 0.35, 2.1)
 collision_layer = 8
+collision_mask = 15
 mass = 0.3
 script = ExtResource("6_shop_item")
 item_name = "Red Apple"
@@ -338,9 +337,13 @@ surface_material_override/0 = SubResource("ShaderMaterial_jscy8")
 [node name="Collision" type="CollisionShape3D" parent="Items/Apple2"]
 shape = SubResource("shape_apple")
 
+[node name="NavObstacle" type="NavigationObstacle3D" parent="Items/Apple2"]
+radius = 0.5
+
 [node name="Apple3" type="RigidBody3D" parent="Items"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.85, 0.12, 1.8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.85, 0.35, 1.8)
 collision_layer = 8
+collision_mask = 15
 mass = 0.3
 script = ExtResource("6_shop_item")
 item_name = "Red Apple"
@@ -352,9 +355,13 @@ surface_material_override/0 = SubResource("ShaderMaterial_y6deb")
 [node name="Collision" type="CollisionShape3D" parent="Items/Apple3"]
 shape = SubResource("shape_apple")
 
+[node name="NavObstacle" type="NavigationObstacle3D" parent="Items/Apple3"]
+radius = 0.5
+
 [node name="Bottle1" type="RigidBody3D" parent="Items"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.15, -1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.45, -1)
 collision_layer = 8
+collision_mask = 15
 mass = 0.5
 script = ExtResource("6_shop_item")
 item_name = "Blue Bottle"
@@ -367,9 +374,13 @@ surface_material_override/0 = SubResource("ShaderMaterial_2wyq8")
 [node name="Collision" type="CollisionShape3D" parent="Items/Bottle1"]
 shape = SubResource("shape_bottle")
 
+[node name="NavObstacle" type="NavigationObstacle3D" parent="Items/Bottle1"]
+radius = 0.4
+
 [node name="Bottle2" type="RigidBody3D" parent="Items"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.3, 0.15, -1.2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.3, 0.45, -1.2)
 collision_layer = 8
+collision_mask = 15
 mass = 0.5
 script = ExtResource("6_shop_item")
 item_name = "Blue Bottle"
@@ -382,9 +393,13 @@ surface_material_override/0 = SubResource("ShaderMaterial_2f3dj")
 [node name="Collision" type="CollisionShape3D" parent="Items/Bottle2"]
 shape = SubResource("shape_bottle")
 
+[node name="NavObstacle" type="NavigationObstacle3D" parent="Items/Bottle2"]
+radius = 0.4
+
 [node name="Box1" type="RigidBody3D" parent="Items"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.125, 3)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.375, 3)
 collision_layer = 8
+collision_mask = 15
 script = ExtResource("6_shop_item")
 item_name = "Wooden Box"
 size = 1
@@ -397,9 +412,13 @@ surface_material_override/0 = SubResource("ShaderMaterial_fv21b")
 [node name="Collision" type="CollisionShape3D" parent="Items/Box1"]
 shape = SubResource("shape_box")
 
+[node name="NavObstacle" type="NavigationObstacle3D" parent="Items/Box1"]
+radius = 0.6
+
 [node name="Box2" type="RigidBody3D" parent="Items"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0.125, -2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0.375, -2)
 collision_layer = 8
+collision_mask = 15
 script = ExtResource("6_shop_item")
 item_name = "Wooden Box"
 size = 1
@@ -411,3 +430,6 @@ surface_material_override/0 = SubResource("ShaderMaterial_qkpxi")
 
 [node name="Collision" type="CollisionShape3D" parent="Items/Box2"]
 shape = SubResource("shape_box")
+
+[node name="NavObstacle" type="NavigationObstacle3D" parent="Items/Box2"]
+radius = 0.6

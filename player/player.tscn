@@ -77,7 +77,7 @@ graph_offset = Vector2(-50, 0)
 
 [node name="Player" type="CharacterBody3D" groups=["player"]]
 collision_layer = 4
-collision_mask = 3
+collision_mask = 11
 script = ExtResource("3_script")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]

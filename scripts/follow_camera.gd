@@ -89,7 +89,24 @@ func _on_selection_changed(selected_ids: Array) -> void:
 		# Don't reset _smooth_target_pos - let it lerp naturally
 
 
+func _reset_to_player() -> void:
+	# Deselect all NPCs
+	var data_store = NPCDataStore.get_instance()
+	if data_store:
+		data_store.deselect_all()
+	
+	# Reset camera to follow player with default zoom
+	target = _default_target
+	target_zoom = player_default_zoom
+	target_angle = 0.0  # Reset rotation too
+
+
 func _input(event: InputEvent) -> void:
+	# Space key: reset camera to raccoon and deselect all NPCs
+	if event is InputEventKey and event.pressed and event.keycode == KEY_SPACE:
+		_reset_to_player()
+		return
+	
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
 			target_zoom = clamp(target_zoom - zoom_speed * 0.2, min_zoom, max_zoom)

@@ -292,6 +292,7 @@ func _handle_debug_movement(delta: float) -> void:
 		velocity.y -= 9.8 * delta
 	
 	move_and_slide()
+	_push_rigidbodies()
 
 
 func _handle_nav_movement(delta: float) -> void:
@@ -300,6 +301,7 @@ func _handle_nav_movement(delta: float) -> void:
 		if not is_on_floor():
 			velocity.y -= 9.8 * delta
 			move_and_slide()
+			_push_rigidbodies()
 		return
 	
 	if _nav_agent.is_navigation_finished():
@@ -329,6 +331,26 @@ func _handle_nav_movement(delta: float) -> void:
 		velocity.y -= 9.8 * delta
 	
 	move_and_slide()
+	_push_rigidbodies()
+
+
+## Push any RigidBody3D objects we collide with
+@export var push_force: float = 1.0
+
+func _push_rigidbodies() -> void:
+	for i in get_slide_collision_count():
+		var collision = get_slide_collision(i)
+		var collider = collision.get_collider()
+		
+		if collider is RigidBody3D:
+			# Calculate push direction (from player toward object)
+			var push_dir = collision.get_normal() * -1
+			push_dir.y = 0  # Keep horizontal
+			push_dir = push_dir.normalized()
+			
+			# Apply impulse at collision point
+			var contact_point = collision.get_position()
+			collider.apply_impulse(push_dir * push_force, contact_point - collider.global_position)
 
 
 # ═══════════════════════════════════════

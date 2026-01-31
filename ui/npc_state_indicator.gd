@@ -55,6 +55,9 @@ func _ready() -> void:
 	_data_store = NPCDataStore.get_instance()
 	_data_store.state_changed.connect(_on_state_changed)
 	_data_store.selection_changed.connect(_on_selection_changed)
+	
+	# Initialize chat bubble manager singleton (manages unselected NPC bubbles)
+	ChatBubbleManager.get_instance()
 
 
 func _input(event: InputEvent) -> void:
@@ -277,6 +280,21 @@ func _resize_to_fit() -> void:
 
 
 func hide_indicator() -> void:
+	_sprite.visible = false
+
+
+## Called by ChatBubbleManager to show bubble for unselected NPC
+func show_managed() -> void:
+	if _pending_dialogue.is_empty():
+		return
+	var state = _pending_dialogue.get("state", "idle")
+	var dialogue = _pending_dialogue.get("dialogue", "")
+	if not dialogue.is_empty():
+		show_dialogue(dialogue, 0.0, state)
+
+
+## Called by ChatBubbleManager to hide bubble for unselected NPC
+func hide_managed() -> void:
 	_sprite.visible = false
 
 

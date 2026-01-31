@@ -33,12 +33,12 @@ func _ready() -> void:
 	if use_current_as_home:
 		home_position = global_position
 	
-	# Start frozen in place
-	freeze = true
+	# Items start unfrozen so they can be pushed
+	freeze = false
 	
 	# Set up collision
 	collision_layer = 8  # Layer 4 (items)
-	collision_mask = 1   # Collide with environment
+	collision_mask = 15  # Collide with environment (1), NPCs (2), player (4), and other items (8)
 
 
 func _process(_delta: float) -> void:
