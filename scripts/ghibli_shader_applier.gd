@@ -2,7 +2,7 @@ class_name GhibliShaderApplier
 extends Node
 ## Utility to apply Ghibli-style toon shading to meshes.
 ## Can apply to parent's children or entire scene tree.
-## Outlines are handled separately via post-process.
+## Press R to toggle rim light on/off for comparison.
 
 @export var apply_toon_shader: bool = true
 @export var enable_rim_light: bool = true
@@ -17,10 +17,13 @@ var _exclude_names: Array[String] = [
 ]
 
 var _toon_shader: Shader
+var _applied_materials: Array[ShaderMaterial] = []  ## Track materials for toggling
+var _rim_enabled: bool = true
 
 
 func _ready() -> void:
 	_toon_shader = load("res://shaders/toon.gdshader")
+	_rim_enabled = enable_rim_light
 	
 	if scene_wide:
 		call_deferred("_apply_scene_wide")
@@ -31,6 +34,23 @@ func _ready() -> void:
 		var parent = get_parent()
 		if parent:
 			_apply_to_node_recursive(parent)
+
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_R:
+			_toggle_rim_light()
+
+
+func _toggle_rim_light() -> void:
+	_rim_enabled = not _rim_enabled
+	var intensity = 0.6 if _rim_enabled else 0.0
+	
+	for mat in _applied_materials:
+		if is_instance_valid(mat):
+			mat.set_shader_parameter("rim_intensity", intensity)
+	
+	print("[RimLight] %s" % ("ON" if _rim_enabled else "OFF"))
 
 
 func _apply_scene_wide() -> void:
@@ -115,9 +135,11 @@ func _create_toon_material(original: Material) -> ShaderMaterial:
 	toon_mat.set_shader_parameter("base_color", base_color)
 	toon_mat.set_shader_parameter("shadow_strength", 0.25)
 	toon_mat.set_shader_parameter("shadow_threshold", 0.4)
-	toon_mat.set_shader_parameter("enable_rim", enable_rim_light)
-	toon_mat.set_shader_parameter("rim_color", Color(1.0, 0.95, 0.9, 1.0))
+	toon_mat.set_shader_parameter("rim_color", Color(1.0, 1.0, 1.0, 1.0))
 	toon_mat.set_shader_parameter("rim_power", 3.0)
-	toon_mat.set_shader_parameter("rim_intensity", 0.3)
+	toon_mat.set_shader_parameter("rim_intensity", 0.6 if _rim_enabled else 0.0)
+	
+	# Track for toggling
+	_applied_materials.append(toon_mat)
 	
 	return toon_mat

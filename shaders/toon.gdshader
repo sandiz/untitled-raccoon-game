@@ -12,11 +12,25 @@ uniform bool use_texture = false;
 uniform float shadow_strength : hint_range(0.0, 1.0) = 0.3;
 uniform float shadow_threshold : hint_range(0.0, 1.0) = 0.4;
 
+// Rim lighting (fresnel edge glow)
+uniform vec4 rim_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
+uniform float rim_intensity : hint_range(0.0, 2.0) = 0.6;
+uniform float rim_power : hint_range(0.5, 8.0) = 3.0;
+
 void fragment() {
 	vec4 tex_color = use_texture ? texture(albedo_texture, UV) : vec4(1.0);
 	ALBEDO = base_color.rgb * tex_color.rgb;
 	ROUGHNESS = 0.9;
 	METALLIC = 0.0;
+	
+	// Rim lighting calculation (fresnel effect)
+	// VIEW is the direction from camera to fragment in view space
+	// NORMAL is the surface normal in view space
+	float rim_factor = 1.0 - max(dot(NORMAL, VIEW), 0.0);
+	rim_factor = pow(rim_factor, rim_power) * rim_intensity;
+	
+	// Add rim light as emission so it's visible even in shadow
+	EMISSION = rim_color.rgb * rim_factor * brightness;
 }
 
 void light() {

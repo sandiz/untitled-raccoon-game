@@ -58,7 +58,7 @@ skeleton_path = NodePath("../CharacterMesh/Armature/Skeleton3D")
 [node name="PerceptionRange" type="Node3D" parent="."]
 script = ExtResource("8_perception")
 vision_range = 8.0
-hearing_range = 12.0
+hearing_range = 4.0
 show_hearing = true
 
 [node name="FootstepAudio" type="Node" parent="."]
