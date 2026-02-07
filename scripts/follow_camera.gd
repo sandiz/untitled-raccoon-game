@@ -9,7 +9,7 @@ extends Camera3D
 @export var look_height_offset: float = -2.0
 @export var zoom_speed: float = 0.5
 @export var min_zoom: float = 0.4
-@export var max_zoom: float = 1.1
+@export var max_zoom: float = 0.6
 @export var zoom_smoothing: float = 8.0
 @export var player_default_zoom: float = 0.55  ## Zoom when following player
 @export var npc_default_zoom: float = 0.55  ## Zoom when following NPC

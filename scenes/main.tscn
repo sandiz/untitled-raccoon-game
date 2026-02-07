@@ -70,7 +70,7 @@ shader_parameter/night_brightness_boost = 1.5
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_grid"]
 material = SubResource("ShaderMaterial_grid")
-size = Vector2(200, 200)
+size = Vector2(4000, 4000)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_1"]
 size = Vector3(2000, 0.1, 2000)

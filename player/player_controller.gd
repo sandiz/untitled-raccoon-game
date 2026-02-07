@@ -538,3 +538,10 @@ func _generate_honk_stream() -> AudioStreamWAV:
 	
 	stream.data = data
 	return stream
+
+
+## Called by animation notifies at foot contact frames
+func _on_footstep() -> void:
+	var footstep_audio = get_node_or_null("FootstepAudio")
+	if footstep_audio and footstep_audio.has_method("step"):
+		footstep_audio.step()

@@ -1,61 +1,37 @@
 # Emotional State System
 
-## Current Implementation (4 meters)
+## Current: 3 Meters
 
-| Meter | Icon | Drives | Issues |
-|-------|------|--------|--------|
-| Alertness | 👁 | Detection speed | Overlaps with Suspicion |
-| Annoyance | 😤 | Aggression | OK |
-| Exhaustion | 💤 | Give up behavior | OK |
-| Suspicion | 🔍 | Investigation | Overlaps with Alertness |
-
-## Proposed System (3 meters)
-
-Simpler, more emergent:
-
-| Meter | Icon | Drives | Player manipulates by |
+| Meter | Icon | Drives | Player Manipulates By |
 |-------|------|--------|----------------------|
-| **Energy** | ⚡ | Chase duration, give up threshold | Making them run/tire out |
-| **Agitation** | 🔥 | Aggression, detection speed, chase speed | Mischief, being spotted, stealing |
-| **Awareness** | 👀 | FOV size, reaction time, search thoroughness | Distractions, hiding, sneaking |
+| **Stamina** | ⚡ | Chase duration, give up | Making them run/tire out |
+| **Suspicion** | 🔍 | Detection, investigation | Being spotted, stealing |
+| **Temper** | 🔥 | Aggression, chase speed | Failed chases, mischief |
+
+## Decay/Growth
+
+| Meter | Grows When | Decays When |
+|-------|------------|-------------|
+| Stamina | Idle, resting | Chasing, running |
+| Suspicion | Seeing player, sounds | Time passes (5/sec toward 10) |
+| Temper | Failed catches, theft | Time passes (1.5/sec, slow) |
 
 ## Emergent Combinations
 
-| Energy | Agitation | Awareness | Result |
-|--------|-----------|-----------|--------|
-| High | High | High | **Dangerous** - Fast, aggressive, hard to escape |
-| High | Low | Low | **Oblivious** - Has stamina but won't notice you |
-| Low | High | High | **Frustrated** - Wants to chase but can't, gives up angry |
-| Low | Low | Low | **Exhausted** - Easy target, slow reactions |
-| Mid | High | Low | **Reckless** - Charges blindly, easy to evade |
-| Mid | Low | High | **Vigilant** - Watches carefully but won't chase hard |
+| Stamina | Suspicion | Temper | Result |
+|---------|-----------|--------|--------|
+| High | High | High | **Dangerous** - Fast, aggressive, persistent |
+| High | Low | Low | **Oblivious** - Has stamina but won't notice |
+| Low | High | High | **Frustrated** - Wants to chase but can't |
+| Low | Low | Low | **Exhausted** - Easy target |
 
-## State Thresholds
+## Thresholds
 
-```
-if agitation > 0.7 and awareness > 0.5:
-    state = "chasing"
-elif agitation > 0.5 and awareness > 0.3:
-    state = "investigating"  
-elif awareness > 0.6:
-    state = "alert"
-elif energy < 0.2:
-    state = "exhausted"
-else:
-    state = "idle"
+```gdscript
+will_chase = witnessed_theft AND stamina > 20
+will_give_up = stamina < 10
 ```
 
-## Decay/Growth Rates
+## Implementation
 
-| Meter | Grows when | Decays when |
-|-------|------------|-------------|
-| Energy | Resting, idle | Chasing, running |
-| Agitation | Seeing player, items stolen, hearing sounds | Time passes, nothing happens |
-| Awareness | Sounds, movement in periphery, suspicion | Time passes, distracted |
-
-## Decision Needed
-
-Switch from 4 meters to 3 meters?
-- [ ] Yes - Implement 3-meter system
-- [ ] No - Keep current 4 meters
-- [ ] Other - (describe)
+`systems/npc_emotional_state.gd` - Attached to each NPC

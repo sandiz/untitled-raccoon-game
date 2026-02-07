@@ -63,8 +63,6 @@ show_hearing = true
 
 [node name="FootstepAudio" type="Node" parent="."]
 script = ExtResource("10_footstep")
-step_interval = 0.45
-run_interval = 0.28
 volume_db = -10.0
 base_pitch = 0.95
 surface_type = "concrete"
