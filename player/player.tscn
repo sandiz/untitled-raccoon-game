@@ -1,9 +1,10 @@
-[gd_scene load_steps=19 format=3 uid="uid://cplayer001"]
+[gd_scene load_steps=20 format=3 uid="uid://cplayer001"]
 
 [ext_resource type="PackedScene" uid="uid://bvbvgm6ktmcdf" path="res://player/raccoon.glb" id="1_mesh"]
 [ext_resource type="AnimationLibrary" uid="uid://b46m28yp3311e" path="res://player/Character_AnimationLibrary.tres" id="2_animlib"]
 [ext_resource type="Script" path="res://player/player_controller.gd" id="3_script"]
 [ext_resource type="Script" path="res://scripts/ghibli_shader_applier.gd" id="4_ghibli"]
+[ext_resource type="Script" path="res://systems/footstep_audio.gd" id="5_footstep"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 0.175
@@ -112,3 +113,11 @@ libraries = {
 root_node = NodePath("../%CharacterMesh")
 tree_root = SubResource("AnimationNodeStateMachine_1")
 anim_player = NodePath("../AnimationPlayer")
+
+[node name="FootstepAudio" type="Node" parent="."]
+script = ExtResource("5_footstep")
+step_interval = 0.32
+run_interval = 0.2
+volume_db = -6.0
+base_pitch = 1.4
+surface_type = "grass"

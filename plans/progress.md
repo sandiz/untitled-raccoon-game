@@ -23,6 +23,13 @@ Shopkeeper wanders → Sees raccoon with item → Chases → Catch/Escape → Re
 
 ## Recent Changes (Session)
 
+### Footstep Audio System
+- Added `systems/footstep_audio.gd` - timer-based footstep playback
+- Kenney Impact Sounds pack: grass & concrete footsteps in `assets/audio/footsteps/`
+- Added to Player (`player/player.tscn`) and all NPCs (Agnes, Shopkeeper, Clyde)
+- Features: speed-based intervals, pitch variation, 3D positional audio
+- Surface switching support via `set_surface("grass")` or `set_surface("concrete")`
+
 ### UI Improvements
 - **ScrollableWidgetContainer** - Base class for manual layout with scroll support
   - Solves VBoxContainer sizing issues with dynamic content
@@ -97,10 +104,19 @@ All systems stored in blackboard for BT access with fallback pattern.
 
 ---
 
+## Target Platforms
+- **Web** (primary) - Must work in browser
+- **Desktop** (macOS, Windows, Linux)
+
+**Important:** Always test on web. Use `UIUtils.get_display_scale()` for DPI scaling, avoid autoloads (use singletons), ensure mouse capture works on web.
+
+---
+
 ## Next Steps
 1. ~~Extract animation logic~~ ✅ Done
 2. Search behavior when player escapes (hold for now)
 3. Give Up behavior after long chase (hold for now)
 4. Item drop on catch, return behavior
-5. Audio (footsteps, alerts, honk)
-6. Polish (animations, particles)
+5. ~~Audio (footsteps)~~ ✅ Done - Kenney sounds, see `systems/footstep_audio.gd`
+6. Audio (alerts, honk) - Still needed
+7. Polish (animations, particles)

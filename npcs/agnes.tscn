@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://agnes_npc_001"]
+[gd_scene load_steps=12 format=3 uid="uid://agnes_npc_001"]
 
 [ext_resource type="PackedScene" uid="uid://wmk12duaum65" path="res://npcs/agnes.glb" id="1_mesh"]
 [ext_resource type="AnimationLibrary" uid="uid://b46m28yp3311e" path="res://player/Character_AnimationLibrary.tres" id="2_animlib"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://npcs/head_look_at.gd" id="7_headlook"]
 [ext_resource type="Script" path="res://npcs/perception_range.gd" id="8_perception"]
 [ext_resource type="Resource" path="res://data/personalities/agnes.tres" id="9_personality"]
+[ext_resource type="Script" path="res://systems/footstep_audio.gd" id="10_footstep"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 0.4
@@ -59,3 +60,11 @@ script = ExtResource("8_perception")
 vision_range = 8.0
 hearing_range = 12.0
 show_hearing = true
+
+[node name="FootstepAudio" type="Node" parent="."]
+script = ExtResource("10_footstep")
+step_interval = 0.45
+run_interval = 0.28
+volume_db = -10.0
+base_pitch = 0.95
+surface_type = "concrete"

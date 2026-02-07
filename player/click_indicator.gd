@@ -37,9 +37,6 @@ func _process(delta: float) -> void:
 	if _arrow:
 		var bounce := sin(_time * arrow_bounce_speed) * arrow_bounce_height
 		_arrow.position.y = arrow_base_height + bounce
-		# Debug every 60 frames
-		if Engine.get_process_frames() % 60 == 0:
-			print("[ClickIndicator] _time=", snapped(_time, 0.01), " bounce=", snapped(bounce, 0.01), " arrow.y=", snapped(_arrow.position.y, 0.01))
 
 
 func _create_ring_mesh() -> void:
@@ -137,7 +134,6 @@ func show_at(pos: Vector3) -> void:
 	if _arrow:
 		var bounce := sin(_time * arrow_bounce_speed) * arrow_bounce_height
 		_arrow.position.y = arrow_base_height + bounce
-		print("[ClickIndicator] show_at: _time=", snapped(_time, 0.01), " immediate bounce=", snapped(bounce, 0.01))
 	
 	visible = true
 	scale = Vector3.ONE
