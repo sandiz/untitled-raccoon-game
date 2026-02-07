@@ -5,7 +5,7 @@ extends Node3D
 ## Uses UIUtils for shared styling.
 
 @export var npc_id: String = ""  # Set by shopkeeper to identify which NPC this belongs to
-@export var height_offset: float = 3.3
+@export var height_offset: float = 2.8
 @export var bob_amount: float = 0.05
 @export var bob_speed: float = 2.0
 @export var max_bubble_width: float = 1800.0
