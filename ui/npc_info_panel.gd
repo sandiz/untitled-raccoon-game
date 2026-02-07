@@ -1,5 +1,5 @@
 class_name NPCInfoPanel
-extends BaseWidget
+extends "res://ui/base_widget.gd"
 ## Wildlife documentary style info panel - extends BaseWidget.
 ## Shows info for selected NPC only (hidden when no NPC selected).
 ## Reads NPC state from NPCDataStore for sync with speech bubble.
@@ -262,6 +262,14 @@ func show_npc(npc: Node3D) -> void:
 	_current_npc = npc
 	_last_state = ""
 	
+	# Auto-expand panel when showing NPC
+	if not _expanded:
+		_expanded = true
+		if _expanded_box:
+			_expanded_box.visible = true
+		if _expand_btn:
+			_expand_btn.text = "▲"
+	
 	# Re-show stat bars for NPC
 	if _stats_box:
 		_stats_box.visible = true
@@ -421,8 +429,8 @@ func _add_dialogue_char(index: int) -> void:
 
 
 func _update_state_label(state: String) -> void:
-	var emoji = NPCUIUtils.get_status_emoji(state)
-	var color = NPCUIUtils.get_status_color(state)
+	var emoji := UIUtils.get_status_emoji(state)
+	var color := UIUtils.get_status_color(state)
 	_state_label.text = emoji + " " + state.capitalize()
 	_state_label.add_theme_color_override("font_color", color)
 

@@ -15,7 +15,6 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="Untitled Raccoon Game"
-config/tags=PackedStringArray("test")
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.5", "Forward Plus")
 config/icon="res://icon.svg"
@@ -78,7 +77,6 @@ toggle_debug={
 
 [moonlake]
 
-general/project_id="2e0c8ecb-c65a-4392-af3c-92f8d91b2db4"
 agent_behavior/escape_key_stops_agent=true
 general/project_type="3d"
 ui/chat_input_height=352.0

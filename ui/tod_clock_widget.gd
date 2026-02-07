@@ -1,4 +1,4 @@
-extends BaseWidget
+extends "res://ui/base_widget.gd"
 ## Time of Day clock widget - extends BaseWidget for shared styling.
 
 signal period_selected(period_index: int)
@@ -38,14 +38,23 @@ func _ready() -> void:
 
 
 func _slide_in() -> void:
-	# Slide in from right on startup
+	# Ensure visible first, then animate
+	visible = true
 	modulate.a = 0.0
-	_container.position.x = 50
+	if _container:
+		_container.position.x = 50
 	var tween = create_tween()
+	if not tween:
+		# Fallback if tween fails (web edge case)
+		modulate.a = 1.0
+		if _container:
+			_container.position.x = 0
+		return
 	tween.set_ease(Tween.EASE_OUT)
 	tween.set_trans(Tween.TRANS_BACK)
 	tween.set_parallel(true)
-	tween.tween_property(_container, "position:x", 0.0, 0.3)
+	if _container:
+		tween.tween_property(_container, "position:x", 0.0, 0.3)
 	tween.tween_property(self, "modulate:a", 1.0, 0.2)
 
 
@@ -91,6 +100,9 @@ func _find_day_night_recursive(node: Node) -> DayNightCycle:
 
 
 func _build_ui() -> void:
+	# Ensure minimum size so container can find us
+	custom_minimum_size = Vector2(150, 40)
+	
 	# Container - sized to content
 	_container = PanelContainer.new()
 	var style = _create_panel_style(6, 6)
@@ -188,6 +200,14 @@ func _on_period_button_pressed(index: int) -> void:
 	if _day_night:
 		_day_night.set_period(index as DayNightCycle.TimePeriod, false)
 	period_selected.emit(index)
+	
+	# Show TOD notification
+	var notif = GameNotification.get_instance()
+	if notif:
+		notif.notify("", PERIOD_NAMES[index].to_lower())
+	
+	# Auto-save when player manually changes time
+	_trigger_autosave()
 
 
 func _on_pause_pressed() -> void:
@@ -239,6 +259,15 @@ func _on_progress_bar_input(event: InputEvent) -> void:
 		# Set the time
 		if _day_night:
 			_day_night.set_normalized_time(normalized)
+			
+			# Show TOD notification for the new period
+			var period_name = _day_night.get_current_period()
+			var notif = GameNotification.get_instance()
+			if notif:
+				notif.notify("", period_name.to_lower())
+			
+			# Auto-save when player manually changes time
+			_trigger_autosave()
 
 
 func _update_display() -> void:
@@ -262,3 +291,10 @@ func _update_display() -> void:
 	
 	for i in range(_period_buttons.size()):
 		_period_buttons[i].modulate = color if i == period_index else Color.WHITE
+
+
+## Trigger auto-save when player manually changes time
+func _trigger_autosave() -> void:
+	var save_manager = SimulationSaveManager.get_instance()
+	if save_manager:
+		save_manager.save_simulation(SimulationSaveManager.AUTOSAVE_SLOT)

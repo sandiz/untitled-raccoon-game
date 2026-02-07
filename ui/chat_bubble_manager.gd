@@ -14,8 +14,8 @@ static var _instance: ChatBubbleManager = null
 var max_total_bubbles: int = 2  # Max total bubbles (selected + unselected)
 var per_npc_cooldown: float = 8.0  # Seconds before same NPC can show again
 var min_display_time: float = 2.0  # Minimum time a bubble stays visible
-var max_distance: float = 20.0  # Don't show bubbles beyond this distance
-var startup_delay: float = 5.0  # Don't show any bubbles for first N seconds
+var max_distance: float = 30.0  # Don't show bubbles beyond this distance
+var startup_delay: float = 2.0  # Don't show any bubbles for first N seconds (reduced for better testing)
 
 # State tracking
 var _active_bubbles: Dictionary = {}  # npc_id -> {indicator, show_time}

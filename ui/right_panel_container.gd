@@ -13,11 +13,18 @@ func _ready() -> void:
 
 
 func _get_max_height() -> float:
-	return get_viewport_rect().size.y - MARGIN * 2 - BOTTOM_MARGIN
+	var viewport_size = get_viewport_rect().size
+	# Fallback for web where viewport size might be zero initially
+	if viewport_size.y <= 0:
+		viewport_size.y = 720.0
+	return viewport_size.y - MARGIN * 2 - BOTTOM_MARGIN
 
 
 func _get_anchor_position(container_size: Vector2) -> Vector2:
 	var viewport_size = get_viewport_rect().size
+	# Fallback for web where viewport size might be zero initially
+	if viewport_size.x <= 0:
+		viewport_size.x = 1280.0
 	return Vector2(
 		viewport_size.x - container_size.x - MARGIN,
 		MARGIN

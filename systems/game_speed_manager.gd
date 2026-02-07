@@ -51,17 +51,10 @@ func _input(event: InputEvent) -> void:
 
 
 func _create_speed_label() -> void:
-	var scale = _get_editor_scale()
-	
 	_speed_label = Label.new()
 	_speed_label.name = "SpeedIndicator"
 	_speed_label.text = "1x"
-	
-	# Load JetBrains Mono font
-	var font = load("res://assets/fonts/JetBrainsMono.ttf")
-	if font:
-		_speed_label.add_theme_font_override("font", font)
-	_speed_label.add_theme_font_size_override("font_size", int(32 * scale))
+	UIUtils.style_label(_speed_label, 32, UIUtils.TEXT_COLOR)
 	_speed_label.modulate.a = 0.0
 	
 	# Position bottom-right
@@ -80,10 +73,7 @@ func _create_speed_label() -> void:
 	canvas.add_child(_speed_label)
 
 
-func _get_editor_scale() -> float:
-	if Engine.is_editor_hint():
-		return EditorInterface.get_editor_scale()
-	return 2.0  # Default scale
+
 
 
 func set_speed_index(index: int) -> void:

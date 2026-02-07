@@ -2,21 +2,21 @@ class_name NPCStateIndicator
 extends Node3D
 ## Speech bubble using SubViewport for clean 2D rendering in 3D.
 ## Listens to NPCDataStore for state/dialogue updates.
-## Priority is now handled centrally by NPCDataStore - both UIs stay in sync.
+## Uses UIUtils for shared styling.
 
 @export var npc_id: String = ""  # Set by shopkeeper to identify which NPC this belongs to
 @export var height_offset: float = 3.3
 @export var bob_amount: float = 0.05
 @export var bob_speed: float = 2.0
-@export var max_bubble_width: float = 1200.0
-@export var max_chars_per_line: int = 28  # Slightly less to account for emoji
+@export var max_bubble_width: float = 1800.0
+@export var max_chars_per_line: int = 45  # Wider to fit more text
 @export var min_lines: int = 1  # Shrink to fit content
 @export var max_lines: int = 5
 @export var typewriter_speed: float = 0.03  # Seconds per character
 
-@export var min_scale: float = 0.5  # Minimum scale when zoomed way out
-@export var max_scale: float = 1.2  # Maximum scale when zoomed way in
-@export var reference_distance: float = 10.0  # Distance where scale = 1.0
+@export var min_scale: float = 0.4  # Minimum scale when zoomed way out
+@export var max_scale: float = 0.6  # Maximum scale when zoomed way in
+@export var reference_distance: float = 12.0  # Distance where scale = 1.0
 
 var _viewport: SubViewport
 var _panel: PanelContainer
@@ -68,9 +68,9 @@ func _input(event: InputEvent) -> void:
 
 
 func _get_editor_scale() -> float:
-	if Engine.is_editor_hint():
-		return EditorInterface.get_editor_scale()
-	return 5.0  # Runtime default - large for readability
+	# Use smaller base scale for 3D indicators (different from 2D UI)
+	var base_scale := 2.0 if OS.has_feature("web") else 3.0
+	return base_scale * UIUtils.get_display_scale()
 
 
 func _s(val: int) -> int:
@@ -82,8 +82,10 @@ func _setup_viewport() -> void:
 	_viewport = SubViewport.new()
 	_viewport.transparent_bg = true
 	# Note: msaa_2d not supported on GLES3, skip for compatibility
-	_viewport.size = Vector2i(_s(600), _s(120))
+	_viewport.size = Vector2i(_s(900), _s(120))
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	# Ensure proper clear mode for web compatibility
+	_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ALWAYS
 	add_child(_viewport)
 	
 	# Container for panel + tail
@@ -109,7 +111,7 @@ func _setup_viewport() -> void:
 	container.add_child(_panel)
 	
 	# Load font once for all labels
-	var font = load("res://assets/fonts/JetBrainsMono.ttf")
+	var font := UIUtils.get_font()
 	
 	# HBox for icon + text
 	_hbox = HBoxContainer.new()
@@ -119,6 +121,8 @@ func _setup_viewport() -> void:
 	# Emoji indicator
 	_emoji_label = Label.new()
 	_emoji_label.text = "💬"
+	if font:
+		_emoji_label.add_theme_font_override("font", font)
 	_emoji_label.add_theme_font_size_override("font_size", _s(20))
 	_emoji_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_emoji_label.custom_minimum_size = Vector2(_s(28), 0)  # Fixed width to prevent layout shift
@@ -171,7 +175,10 @@ func _process(delta: float) -> void:
 	
 	# Update sprite texture from viewport
 	if _viewport and _sprite:
-		_sprite.texture = _viewport.get_texture()
+		var tex = _viewport.get_texture()
+		# Only update if we have a valid texture (helps with web compatibility)
+		if tex and tex.get_width() > 0:
+			_sprite.texture = tex
 	
 	# Subtle bob animation + distance-based scaling
 	if _sprite and _sprite.visible:
@@ -199,11 +206,9 @@ func show_dialogue(text: String, _duration: float = 3.0, state: String = "idle",
 	if _popin_tween:
 		_popin_tween.kill()
 	
-	# Status-based emoji (from shared utility)
-	_emoji_label.text = NPCUIUtils.get_status_emoji(state)
-	
-	# Status-based text color (matches info panel)
-	var text_color = NPCUIUtils.get_status_color(state)
+	# Status-based emoji and color (from shared utility)
+	_emoji_label.text = UIUtils.get_status_emoji(state)
+	var text_color := UIUtils.get_status_color(state)
 	_label.add_theme_color_override("font_color", text_color)
 	
 	# Strip quotes if present

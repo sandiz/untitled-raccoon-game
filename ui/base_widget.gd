@@ -1,13 +1,14 @@
 class_name BaseWidget
 extends Control
 ## Base class for game UI widgets with shared styling and expand/collapse.
+## Uses UIUtils for shared constants and helpers.
 
-# Style constants
-const PANEL_BG_COLOR := Color(0.06, 0.06, 0.08, 0.92)
-const PANEL_BORDER_COLOR := Color(0.25, 0.25, 0.3, 0.9)
-const TEXT_COLOR := Color(0.95, 0.95, 0.9)
-const SUBTITLE_COLOR := Color(0.7, 0.65, 0.6)
-const MUTED_COLOR := Color(0.5, 0.5, 0.55)
+# Backward-compatible aliases for subclasses (delegate to UIUtils)
+const PANEL_BG_COLOR := UIUtils.PANEL_BG_COLOR
+const PANEL_BORDER_COLOR := UIUtils.PANEL_BORDER_COLOR
+const TEXT_COLOR := UIUtils.TEXT_COLOR
+const SUBTITLE_COLOR := UIUtils.SUBTITLE_COLOR
+const MUTED_COLOR := UIUtils.MUTED_COLOR
 
 # Expand/collapse state
 var _expanded: bool = false
@@ -15,16 +16,17 @@ var _expand_btn: Button
 var _expanded_box: Container
 var _expand_keybind: Key = KEY_NONE
 
-# Scaling
-var _editor_scale: float = 1.0
-
-# Font (loaded once)
+# Font (loaded once via UIUtils, cached for subclass convenience)
 var _font: Font
 
 
 func _ready() -> void:
-	_editor_scale = _get_editor_scale()
-	_font = load("res://assets/fonts/JetBrainsMono.ttf")
+	_font = UIUtils.get_font()
+	# Don't catch mouse events on the widget container itself - let them pass
+	# through to actual UI elements (panels, buttons) or the 3D scene.
+	# This fixes web builds where Control defaults blocking all clicks.
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	visible = true
 	_build_ui()
 
 
@@ -52,23 +54,16 @@ func _toggle_expanded() -> void:
 
 ## Create the standard dark panel style
 func _create_panel_style(corner_radius: int = 10, padding: int = 10) -> StyleBoxFlat:
-	var style = StyleBoxFlat.new()
-	style.bg_color = PANEL_BG_COLOR
-	style.set_border_width_all(2)
-	style.border_color = PANEL_BORDER_COLOR
-	style.set_corner_radius_all(_s(corner_radius))
-	style.set_content_margin_all(_s(padding))
-	return style
+	return UIUtils.create_panel_style(corner_radius, padding)
 
 
 ## Create a flat expand/collapse button
 func _create_expand_button() -> Button:
-	var btn = Button.new()
+	var btn := Button.new()
 	btn.text = "▼"
 	btn.flat = true
-	btn.add_theme_font_override("font", _font)
-	btn.add_theme_font_size_override("font_size", _s(14))
-	btn.add_theme_color_override("font_color", TEXT_COLOR)
+	UIUtils.style_button(btn, 14)
+	btn.add_theme_color_override("font_color", UIUtils.TEXT_COLOR)
 	btn.custom_minimum_size = Vector2(_s(32), _s(32))
 	btn.pressed.connect(_toggle_expanded)
 	_expand_btn = btn
@@ -76,21 +71,18 @@ func _create_expand_button() -> Button:
 
 
 ## Create a standard label with font
-func _create_label(text: String, font_size: int = 14, color: Color = TEXT_COLOR) -> Label:
-	var label = Label.new()
+func _create_label(text: String, font_size: int = 14, color: Color = UIUtils.TEXT_COLOR) -> Label:
+	var label := Label.new()
 	label.text = text
-	label.add_theme_font_override("font", _font)
-	label.add_theme_font_size_override("font_size", _s(font_size))
-	label.add_theme_color_override("font_color", color)
+	UIUtils.style_label(label, font_size, color)
 	return label
 
 
 ## Create a button that releases focus after press
 func _create_button(text: String, callback: Callable, font_size: int = 14) -> Button:
-	var btn = Button.new()
+	var btn := Button.new()
 	btn.text = text
-	btn.add_theme_font_override("font", _font)
-	btn.add_theme_font_size_override("font_size", _s(font_size))
+	UIUtils.style_button(btn, font_size)
 	btn.pressed.connect(func():
 		callback.call()
 		get_viewport().gui_release_focus()
@@ -98,13 +90,6 @@ func _create_button(text: String, callback: Callable, font_size: int = 14) -> Bu
 	return btn
 
 
-## Scale value by editor scale
+## Scale value by display scale (delegates to UIUtils)
 func _s(val: int) -> int:
-	return int(val * _editor_scale)
-
-
-## Get editor scale factor
-func _get_editor_scale() -> float:
-	if Engine.is_editor_hint():
-		return EditorInterface.get_editor_scale()
-	return 2.0  # Runtime default
+	return UIUtils.scale(val)

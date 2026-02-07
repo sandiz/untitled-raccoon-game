@@ -1,5 +1,5 @@
 class_name PlayerInfoPanel
-extends BaseWidget
+extends "res://ui/base_widget.gd"
 ## Player (Rascal) info panel - always visible at bottom left.
 ## Matches NPC info panel style exactly.
 
@@ -33,6 +33,14 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	_update_fps()
+	_update_position()
+
+
+func _update_position() -> void:
+	# Position at bottom-left of viewport
+	var viewport_size = get_viewport_rect().size
+	if viewport_size.y > 0:
+		position = Vector2(_s(10), viewport_size.y - size.y - _s(20))
 
 
 func _connect_to_player() -> void:
@@ -65,15 +73,9 @@ func _update_fps() -> void:
 
 
 func _build_ui() -> void:
-	# Position at bottom-left
-	anchor_left = 0.0
-	anchor_top = 1.0
-	anchor_right = 0.0
-	anchor_bottom = 1.0
-	offset_left = _s(10)
-	offset_top = -_s(130)  # Extra space for FPS label
-	offset_right = _s(310)
-	offset_bottom = -_s(20)
+	# Use fixed size instead of anchors for web compatibility
+	custom_minimum_size = Vector2(_s(300), _s(110))
+	size = Vector2(_s(300), _s(110))
 	
 	# FPS label above the panel
 	_fps_label = Label.new()
@@ -83,7 +85,7 @@ func _build_ui() -> void:
 	_fps_label.add_theme_color_override("font_color", Color(0.3, 0.9, 0.3))
 	_fps_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
 	_fps_label.add_theme_constant_override("outline_size", _s(2))
-	var font = load("res://assets/fonts/JetBrainsMono.ttf")
+	var font := UIUtils.get_font()
 	if font:
 		_fps_label.add_theme_font_override("font", font)
 	add_child(_fps_label)
@@ -149,7 +151,7 @@ func _build_ui() -> void:
 
 func set_state(state: String) -> void:
 	_current_state = state
-	var emoji = NPCUIUtils.get_status_emoji(state)
-	var color = NPCUIUtils.get_status_color(state)
+	var emoji := UIUtils.get_status_emoji(state)
+	var color := UIUtils.get_status_color(state)
 	_state_label.text = "%s %s" % [emoji, state.capitalize()]
 	_state_label.add_theme_color_override("font_color", color)

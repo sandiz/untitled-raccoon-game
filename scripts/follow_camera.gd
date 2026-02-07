@@ -8,19 +8,19 @@ extends Camera3D
 @export var height: float = 12.0
 @export var look_height_offset: float = -2.0
 @export var zoom_speed: float = 0.5
-@export var min_zoom: float = 0.5
-@export var max_zoom: float = 1.4
+@export var min_zoom: float = 0.4
+@export var max_zoom: float = 1.1
 @export var zoom_smoothing: float = 8.0
-@export var player_default_zoom: float = 0.7  ## Zoom when following player (smaller unit)
-@export var npc_default_zoom: float = 1.0  ## Zoom when following NPC
+@export var player_default_zoom: float = 0.55  ## Zoom when following player
+@export var npc_default_zoom: float = 0.55  ## Zoom when following NPC
 @export var rotate_speed: float = 0.005
 @export var rotate_smoothing: float = 8.0
 @export var follow_smoothing: float = 8.0
 
 var target: Node3D
 var _default_target: Node3D
-var current_zoom: float = 0.7  # Start zoomed in for player
-var target_zoom: float = 0.7
+var current_zoom: float = 0.55  # Start at default zoom
+var target_zoom: float = 0.55
 var current_angle: float = 0.0
 var target_angle: float = 0.0
 var is_dragging: bool = false
@@ -107,6 +107,13 @@ func _input(event: InputEvent) -> void:
 		_reset_to_player()
 		return
 	
+	# Q/E keys for camera rotation (web-friendly alternative to mouse drag)
+	if event is InputEventKey and event.pressed:
+		if event.keycode == KEY_Q:
+			target_angle += 0.3  # Rotate left
+		elif event.keycode == KEY_E:
+			target_angle -= 0.3  # Rotate right
+	
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
 			target_zoom = clamp(target_zoom - zoom_speed * 0.2, min_zoom, max_zoom)
@@ -118,11 +125,20 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and is_dragging:
 		target_angle -= event.relative.x * rotate_speed
 	
+	# Two-finger trackpad pan gesture (horizontal = rotate camera)
 	if event is InputEventPanGesture:
-		target_angle -= event.delta.x * rotate_speed * 10.0
+		# Increased sensitivity for better trackpad response
+		target_angle -= event.delta.x * rotate_speed * 25.0
 	
 	if event is InputEventMagnifyGesture:
 		target_zoom = clamp(target_zoom / event.factor, min_zoom, max_zoom)
+
+
+# Use _unhandled_input for gestures that might be consumed by UI
+func _unhandled_input(event: InputEvent) -> void:
+	# Fallback: catch pan gestures that weren't handled by UI
+	if event is InputEventPanGesture:
+		target_angle -= event.delta.x * rotate_speed * 25.0
 
 
 func _process(delta: float) -> void:

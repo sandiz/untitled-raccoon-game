@@ -40,6 +40,9 @@ var _children_reparented := false
 
 
 func _ready() -> void:
+	# Don't catch mouse events on the container itself - let them pass through
+	# to children or the 3D scene. Only actual UI elements should catch clicks.
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_setup_scroll_container()
 
 
@@ -47,6 +50,8 @@ func _setup_scroll_container() -> void:
 	_scroll_container = ScrollContainer.new()
 	_scroll_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_scroll_container.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	# Pass through clicks to children, only catch scroll events
+	_scroll_container.mouse_filter = Control.MOUSE_FILTER_PASS
 	
 	# Style scrollbar
 	var scrollbar = _scroll_container.get_v_scroll_bar()
@@ -54,6 +59,8 @@ func _setup_scroll_container() -> void:
 	
 	_content_container = Control.new()
 	_content_container.name = "ScrollContent"
+	# Layout container - pass through all mouse events
+	_content_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
 	add_child(_scroll_container)
 	_scroll_container.add_child(_content_container)
@@ -81,6 +88,10 @@ func _update_layout() -> void:
 	
 	if total_height > 0:
 		total_height -= spacing
+	
+	# Skip layout update if no visible content yet (prevents 0-size container)
+	if max_width <= 0 or total_height <= 0:
+		return
 	
 	# Second pass: position
 	var y_offset := 0.0
@@ -126,10 +137,19 @@ func _get_anchor_position(_container_size: Vector2) -> Vector2:
 
 
 func _reparent_children() -> void:
+	# Wait for scene tree to be fully ready
+	if not is_inside_tree():
+		return
+	
 	var children_to_move: Array[Node] = []
 	for child in get_children():
-		if child != _scroll_container:
+		if child != _scroll_container and child is Control:
 			children_to_move.append(child)
+	
+	# If no children found, try again next frame
+	if children_to_move.is_empty():
+		_children_reparented = false
+		return
 	
 	for child in children_to_move:
 		remove_child(child)

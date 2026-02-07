@@ -1,4 +1,4 @@
-[gd_scene load_steps=52 format=3 uid="uid://bqd6y7xm7r8e2"]
+[gd_scene load_steps=54 format=3 uid="uid://bqd6y7xm7r8e2"]
 
 [ext_resource type="Texture2D" uid="uid://g1l2akl7bpva" path="res://assets/skybox/goose_sky.png" id="1_daysky"]
 [ext_resource type="Texture2D" uid="uid://bqlxhxsr63h20" path="res://assets/skybox/night_moonlit_sky.png" id="1_nightsky"]
@@ -18,8 +18,8 @@
 [ext_resource type="Script" uid="uid://8dhnn72oj5ci" path="res://ui/player_info_panel.gd" id="14_player_info"]
 [ext_resource type="Script" uid="uid://1kcoc3fo0n37" path="res://ui/right_panel_container.gd" id="15_right_panel"]
 [ext_resource type="Shader" uid="uid://b20vbbsgmh3am" path="res://shaders/floor_grid.gdshader" id="16_grid_shader"]
-[ext_resource type="PackedScene" uid="uid://agnes_npc_001" path="res://npcs/agnes.tscn" id="17_agnes"]
-[ext_resource type="PackedScene" uid="uid://clyde_npc_001" path="res://npcs/clyde.tscn" id="18_clyde"]
+[ext_resource type="PackedScene" path="res://npcs/agnes.tscn" id="17_agnes"]
+[ext_resource type="PackedScene" path="res://npcs/clyde.tscn" id="18_clyde"]
 
 [sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_night"]
 panorama = ExtResource("1_nightsky")
@@ -60,7 +60,7 @@ shader = ExtResource("16_grid_shader")
 shader_parameter/grid_size = 1.0
 shader_parameter/line_thickness = 0.02
 shader_parameter/line_softness = 0.015
-shader_parameter/line_color = Color(1, 1, 1, 0.20)
+shader_parameter/line_color = Color(1, 1, 1, 0.2)
 shader_parameter/fade_start = 15.0
 shader_parameter/fade_end = 40.0
 shader_parameter/fade_start_day = 25.0
@@ -260,7 +260,6 @@ transform = Transform3D(0.23496953, 0, 0, 0, 0.9862821, 0, 0, 0, 0.24789615, 0, 
 navigation_mesh = SubResource("NavigationMesh_1")
 
 [node name="Floor" type="StaticBody3D" parent="NavigationRegion3D"]
-collision_layer = 1
 collision_mask = 12
 
 [node name="FloorMesh" type="MeshInstance3D" parent="NavigationRegion3D/Floor"]
@@ -281,6 +280,7 @@ shape = SubResource("BoxShape3D_1")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.355031, 0, 3.6288733)
 
 [node name="UI" type="CanvasLayer" parent="."]
+layer = 10
 
 [node name="TODNotification" parent="UI" instance=ExtResource("8_tod_ui")]
 layout_mode = 3

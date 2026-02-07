@@ -1,4 +1,4 @@
-[gd_resource type="BehaviorTree" load_steps=17 format=3 uid="uid://cl5r0c0b4u7o3"]
+[gd_resource type="BehaviorTree" load_steps=17 format=3 uid="uid://bfc62mb3n2s4i"]
 
 [ext_resource type="Script" uid="uid://d0kqh6p3jda5t" path="res://ai/tasks/chase_player.gd" id="chase"]
 [ext_resource type="Script" uid="uid://crg3p8dnv1fpg" path="res://ai/tasks/play_idle.gd" id="idle"]

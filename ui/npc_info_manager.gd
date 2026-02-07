@@ -8,7 +8,7 @@ extends Node
 @export var player_path: NodePath
 @export var max_click_distance: float = 30.0
 
-var _info_panel: NPCInfoPanel
+var _info_panel: Control  # NPCInfoPanel, but use Control to avoid type issues after reparenting
 var _camera: Camera3D
 var _player: Node3D
 var _data_store: NPCDataStore
@@ -19,7 +19,12 @@ func _ready() -> void:
 
 
 func _setup() -> void:
+	# Try direct path first, then search for reparented panel
 	_info_panel = get_node_or_null(info_panel_path)
+	if not _info_panel:
+		# Panel may have been reparented by ScrollableWidgetContainer
+		_info_panel = _find_info_panel()
+	
 	_camera = get_node_or_null(camera_path)
 	_player = get_node_or_null(player_path)
 	_data_store = NPCDataStore.get_instance()
@@ -34,6 +39,24 @@ func _setup() -> void:
 	
 	# Disabled: Auto-select closest NPC after 2 seconds
 	# get_tree().create_timer(2.0).timeout.connect(func(): _auto_select_closest_npc())
+
+
+func _find_info_panel() -> Control:
+	# Search for NPCInfoPanel in UI tree (may have been reparented)
+	var ui_layer = get_parent()
+	if ui_layer:
+		return _find_node_by_class(ui_layer, "NPCInfoPanel")
+	return null
+
+
+func _find_node_by_class(node: Node, class_name_str: String) -> Control:
+	if node.get_class() == class_name_str or (node.get_script() and node.get_script().get_global_name() == class_name_str):
+		return node as Control
+	for child in node.get_children():
+		var result = _find_node_by_class(child, class_name_str)
+		if result:
+			return result
+	return null
 
 
 func _input(event: InputEvent) -> void:
@@ -58,9 +81,13 @@ func _input(event: InputEvent) -> void:
 
 func _handle_click(screen_pos: Vector2) -> void:
 	# Don't process click if it's on UI
+	# NOTE: On web, gui_get_hovered_control() can return false positives.
+	# We check if the hovered control is a real interactive element (not just a container).
 	var viewport = get_viewport()
-	if viewport and viewport.gui_get_hovered_control() != null:
-		return  # Click was on UI, ignore
+	if viewport:
+		var hovered = viewport.gui_get_hovered_control()
+		if hovered and _is_interactive_control(hovered):
+			return  # Click was on actual UI element, ignore
 	
 	var clicked_npc = _raycast_for_npc(screen_pos)
 	
@@ -128,3 +155,33 @@ func _auto_select_closest_npc() -> void:
 		var npc_id = _data_store.get_npc_id_from_node(closest_npc)
 		if not npc_id.is_empty():
 			_data_store.select_npc(npc_id)
+
+
+## Check if a control is actually interactive (button, panel with content, etc.)
+## Returns false for layout containers that shouldn't block clicks.
+func _is_interactive_control(control: Control) -> bool:
+	if not control:
+		return false
+	
+	# Check mouse filter - IGNORE means it shouldn't block
+	if control.mouse_filter == Control.MOUSE_FILTER_IGNORE:
+		return false
+	
+	# PASS means it passes to children but doesn't block
+	if control.mouse_filter == Control.MOUSE_FILTER_PASS:
+		return false
+	
+	# Interactive types that should block clicks
+	if control is Button or control is LineEdit or control is TextEdit:
+		return true
+	if control is ScrollContainer or control is ProgressBar:
+		return true
+	if control is PanelContainer and control.visible:
+		# Only block if the panel has visible content
+		return control.get_child_count() > 0
+	
+	# Default: check if control has meaningful size and is set to stop mouse
+	if control.mouse_filter == Control.MOUSE_FILTER_STOP:
+		return control.size.x > 10 and control.size.y > 10
+	
+	return false
